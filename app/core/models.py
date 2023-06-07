@@ -8,6 +8,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin
 )
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class UserManager(BaseUserManager):
@@ -46,3 +47,52 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
+
+class Category(models.Model):
+    """Create Category Table"""
+    category = models.CharField(max_length=50,primary_key=True)
+
+class Product(models.Model):
+    """Create Product Table."""
+    p_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    price = models.FloatField()
+    threshold = models.IntegerField()
+    stock = models.IntegerField()
+    rating = models.FloatField(validators=[MinValueValidator(1.0,"Minimum value muct be 1"),MaxValueValidator(5.0,"Maximum value must be 5")],null=True,default=None)
+    description = models.CharField(max_length=200,default=None,null=True)
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name='category_product'
+    )
+    
+
+class Review(models.Model):
+    """Create Review Table."""
+    p_id = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='product_id_review'
+    )
+    review = models.CharField(max_length=500,default=None,null=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='user_review'
+    )
+    rating = models.FloatField(validators=[MinValueValidator(1.0,"Minimum value muct be 1"),MaxValueValidator(5.0,"Maximum value must be 5")],null=True,default=None)
+
+class Cart(models.Model):
+    """Create Cart model."""
+    p_id = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='product_id_cart'
+    )
+    quantity = models.IntegerField()
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='user_cart'
+    )

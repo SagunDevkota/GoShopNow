@@ -52,4 +52,46 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
+
+class ProductAdmin(admin.ModelAdmin):
+    """Define admin page for product."""
+    ordering = ['p_id']
+    list_display = ['p_id','name','price','stock']
+    search_fields = ['name']
+    fieldsets = (
+        (None,{'fields':(
+                'name',
+                'price',
+                'rating',
+                )}),
+        (
+            _('Stocks'),
+            {
+                'fields':(
+                        'stock',
+                        'threshold',
+                )
+            }
+        ),
+        (_('Description'),{'fields':('description',)}),
+        (_('Category'),{'fields':('category',)})
+    )
+    readonly_fields = ['rating']
+
+class ReviewAdmin(admin.ModelAdmin):
+    """Define admin page for review."""
+    list_display = ['id','review','user']
+
+class CategoryAdmin(admin.ModelAdmin):
+    """Define category page for product."""
+    list_display = ['category']
+
+class CartAdmin(admin.ModelAdmin):
+    """Define cart page for product purchase."""
+    list_display = ['id','p_id','quantity','user']
+
 admin.site.register(models.User, UserAdmin)
+admin.site.register(models.Product, ProductAdmin)
+admin.site.register(models.Review, ReviewAdmin)
+admin.site.register(models.Category, CategoryAdmin)
+admin.site.register(models.Cart, CartAdmin)

@@ -57,8 +57,8 @@ class Product(models.Model):
     p_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     price = models.FloatField()
-    threshold = models.IntegerField()
-    stock = models.IntegerField()
+    threshold = models.IntegerField(validators=[MinValueValidator(0)])
+    stock = models.IntegerField(validators=[MinValueValidator(0)])
     rating = models.FloatField(validators=[MinValueValidator(1.0,"Minimum value muct be 1"),MaxValueValidator(5.0,"Maximum value must be 5")],null=True,default=None)
     description = models.CharField(max_length=200,default=None,null=True)
     category = models.ForeignKey(
@@ -96,3 +96,26 @@ class Cart(models.Model):
         on_delete=models.CASCADE,
         related_name='user_cart'
     )
+
+class Payment(models.Model):
+    TYPE_STATUS = [
+        ("Completed", "Completed"),
+        ("Pending", "Pending (Default)"),
+        ("Refunded", "Refunded")
+    ]
+    id = models.CharField(max_length=25, primary_key=True)
+    quantity = models.IntegerField(validators=[MinValueValidator(1)])
+    status = models.CharField(choices=TYPE_STATUS,max_length=9,default='Pending')
+    transaction_id = models.CharField(max_length=25,null=True,default=None)
+    amount = models.FloatField(default=None,null=True,blank=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="user_payment"
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.DO_NOTHING,
+        related_name='product_payemnt'
+    )
+    date_time = models.DateTimeField(auto_now_add=True)

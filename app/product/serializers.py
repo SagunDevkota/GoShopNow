@@ -13,7 +13,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['review','user','name','rating']
     
-    def get_name(self, obj):
+    def get_name(self, obj) -> str:
         return obj.user.first_name
 
 class ProductSerializer(serializers.ModelSerializer):

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'core',
     'user',
     'product',
+    'payment',
 ]
 
 MIDDLEWARE = [
@@ -150,3 +151,7 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+PAYMENT_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
+PAYMENT_LOOKUP_URL = "https://a.khalti.com/api/v2/epayment/lookup/"
+KHALTI_API_KEY = os.environ.get("KHALTI_API_KEY")

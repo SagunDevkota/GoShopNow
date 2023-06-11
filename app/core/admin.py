@@ -90,8 +90,22 @@ class CartAdmin(admin.ModelAdmin):
     """Define cart page for product purchase."""
     list_display = ['id','p_id','quantity','user']
 
+class PaymentAdmin(admin.ModelAdmin):
+    """Define admin panel for payment."""
+    list_display = ['id',"quantity","status","user","product"]
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        field = super().formfield_for_dbfield(db_field, **kwargs)
+        
+        # Check if the field has null=True and default=None
+        if field and db_field.null and db_field.default is None:
+            field.required = False  # Set the field as not required
+
+        return field  
+
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.Review, ReviewAdmin)
 admin.site.register(models.Category, CategoryAdmin)
 admin.site.register(models.Cart, CartAdmin)
+admin.site.register(models.Payment, PaymentAdmin)

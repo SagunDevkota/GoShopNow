@@ -12,6 +12,7 @@ from product import views
 router = DefaultRouter()
 router.register('product', views.ProductViewSet)
 router.register('cart', views.CartViewSet)
+router.register('review',views.ReviewViewSet)
 
 app_name = 'product' #name for reverse url
 

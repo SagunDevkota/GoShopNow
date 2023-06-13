@@ -5,8 +5,21 @@ Django admin customization
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
+from django import forms
+from django.conf import settings
+from ckeditor.widgets import CKEditorWidget
 
 from core import models
+
+import os
+
+
+class ProductAdminForm(forms.ModelForm):
+    extra = forms.CharField(label="Build Description", widget=CKEditorWidget(),initial="")
+
+    class Meta:
+        model = models.Product
+        fields = '__all__'
 
 class UserAdmin(BaseUserAdmin):
     """Define the admin pages for users."""
@@ -73,10 +86,51 @@ class ProductAdmin(admin.ModelAdmin):
                 )
             }
         ),
-        (_('Description'),{'fields':('description',)}),
+        (_('Description'),{'fields':('description','extra',)}),
         (_('Category'),{'fields':('category',)})
     )
-    readonly_fields = ['rating']
+    readonly_fields = ['rating',"description"]
+    form = ProductAdminForm
+
+    def save_model(self, request, obj, form, change):
+        if obj.p_id:
+            try:
+                with open(self.get_html_file_path(obj.p_id), 'w') as file:
+                    file.write(form.cleaned_data["extra"])
+                obj.description = self.get_html_file_url(obj.p_id)  # Set the description field to the file URL
+            except FileNotFoundError:
+                pass
+        else:
+            obj.save()
+            file_content = form.cleaned_data["extra"]
+            self.update_html_file(obj.p_id, file_content)
+            obj.description = self.get_html_file_url(obj.p_id)  # Set the description field to the file URL
+        super().save_model(request, obj, form, change)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['extra'].initial = ""
+        if obj and 'extra' in form.base_fields:
+            try:
+                with open(obj.description, 'r') as file:
+                    content = file.read()
+                    form.base_fields['extra'].initial = content
+            except (FileNotFoundError, AttributeError):
+                pass
+        
+        return form
+
+    def update_html_file(self, p_id, content):
+        file_path = self.get_html_file_path(p_id)
+        with open(file_path, 'w') as file:
+            file.write(content)
+
+    def get_html_file_path(self, p_id):
+        return os.path.join(settings.CKEDITOR_FILE_PATH, f'description_{p_id}.html')
+
+    def get_html_file_url(self, p_id):
+        file_path = self.get_html_file_path(p_id)
+        return os.path.join(settings.CKEDITOR_FILE_PATH, os.path.relpath(file_path, settings.CKEDITOR_FILE_PATH))
 
 class ReviewAdmin(admin.ModelAdmin):
     """Define admin page for review."""

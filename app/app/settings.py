@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'rest_framework',
     'rest_framework_simplejwt',
+    'ckeditor',
     'core',
     'user',
     'product',
@@ -127,10 +128,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -155,3 +157,16 @@ SIMPLE_JWT = {
 PAYMENT_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
 PAYMENT_LOOKUP_URL = "https://a.khalti.com/api/v2/epayment/lookup/"
 KHALTI_API_KEY = os.environ.get("KHALTI_API_KEY")
+
+CKEDITOR_FILE_PATH = "static/description"
+CKEDITOR_UPLOAD_PATH = "static/uploads/"
+CKEDITOR_IMAGE_BACKEND = "pillow"
+CKEDITOR_JQUERY_URL = 'https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js'
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'skin':'prestige'
+    },
+}

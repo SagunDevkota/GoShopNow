@@ -27,7 +27,8 @@ SECRET_KEY = 'django-insecure-(e3sdvc^ksea33k%_ac!yotsc$6p%htst4fy0972x^j5u-+&if
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['goshopnow.onrender.com',
+                '127.0.0.1']
 
 
 # Application definition

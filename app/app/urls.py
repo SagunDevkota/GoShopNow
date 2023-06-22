@@ -20,6 +20,8 @@ from drf_spectacular.views import (
 )
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,4 +30,8 @@ urlpatterns = [
     path('api/user/',include("user.urls")),
     path('api/product/',include("product.urls")),
     path('api/payment/',include("payment.urls")),
+    path('api/cart/',include("cart.urls")),
+    path('api/review/',include("review.urls")),
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

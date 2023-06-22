@@ -43,11 +43,11 @@ class PublicUserApiTests(TestCase):
         create_product(**procuct)
         res = self.client.get(PRODUCT_URL)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn('name',res.data[0])
+        self.assertIn('name',res.data["results"][0])
 
     def test_get_product_success(self):
         """Test get products"""
-        procuct = {
+        product = {
             "name": "Macbook Pro M1 Pro",
             "price": 265000,
             "stock":10,
@@ -60,7 +60,7 @@ class PublicUserApiTests(TestCase):
             "email" : "user@example.com",
             "password" : "test123"
         }
-        product = create_product(**procuct)
+        product = create_product(**product)
         product = Product.objects.get(p_id=1)
         review = Review(p_id=product,review="Good",rating=5,user=create_user(**user))
         review.save()

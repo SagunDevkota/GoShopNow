@@ -2,6 +2,7 @@
 __pycache__/
 description/
 ckeditor/
+staticfiles/
 config.py
 *.py[cod]
 *$py.class

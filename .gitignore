@@ -2,7 +2,7 @@
 __pycache__/
 description/
 ckeditor/
-staticfiles/
+rest_framework/
 config.py
 *.py[cod]
 *$py.class

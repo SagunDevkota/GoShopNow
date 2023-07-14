@@ -10,7 +10,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     class Meta:
         model = Review
-        fields = ['review','user','name','rating']
+        fields = ['p_id','review','user','name','rating']
+        read_only_fields = ["user"]
     
     def get_name(self, obj) -> str:
         return obj.user.first_name

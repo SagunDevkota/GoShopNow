@@ -2,19 +2,11 @@
 Serializers for product model.
 """
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 
-from core.models import (Product,Review,Cart)
+from core.models import Product
 
-class ReviewSerializer(serializers.ModelSerializer):
-    """Serializer for model"""
-    name = serializers.SerializerMethodField()
-    class Meta:
-        model = Review
-        fields = ['review','user','name','rating']
-    
-    def get_name(self, obj) -> str:
-        return obj.user.first_name
+from review.serializers import ReviewSerializer
+
 
 class ProductSerializer(serializers.ModelSerializer):
     """Serializer for product"""

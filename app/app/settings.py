@@ -27,8 +27,7 @@ SECRET_KEY = 'django-insecure-(e3sdvc^ksea33k%_ac!yotsc$6p%htst4fy0972x^j5u-+&if
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['goshopnow.onrender.com',
-                '127.0.0.1']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -43,6 +42,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'rest_framework',
     'rest_framework_simplejwt',
+    "corsheaders",
     'ckeditor',
     'core',
     'user',
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -168,6 +169,13 @@ CKEDITOR_CONFIGS = {
         'toolbar': 'full',
         'height': 300,
         'width': '100%',
-        'skin':'prestige'
+        'skin':'moono'
     },
 }
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://127.0.0.1:3000"
+    "http://localhost"
+]

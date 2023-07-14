@@ -6,7 +6,7 @@ rest_framework/
 config.py
 *.py[cod]
 *$py.class
-
+*.DS_Store
 # C extensions
 *.so
 

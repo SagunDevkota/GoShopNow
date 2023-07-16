@@ -83,6 +83,9 @@ class Review(models.Model):
     )
     rating = models.FloatField(validators=[MinValueValidator(1.0,"Minimum value muct be 1"),MaxValueValidator(5.0,"Maximum value must be 5")],null=True,default=None)
 
+    class Meta:
+        unique_together = ('p_id','user')
+
 class Cart(models.Model):
     """Create Cart model."""
     p_id = models.ForeignKey(
@@ -116,6 +119,6 @@ class Payment(models.Model):
     product = models.ForeignKey(
         Product,
         on_delete=models.DO_NOTHING,
-        related_name='product_payemnt'
+        related_name='product_payment'
     )
     date_time = models.DateTimeField(auto_now_add=True)

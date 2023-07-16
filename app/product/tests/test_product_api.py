@@ -45,7 +45,7 @@ class PublicUserApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertIn('name',res.data["results"][0])
 
-    def test_get_product_success(self):
+    def test_get_product_detail_success(self):
         """Test get products"""
         product = {
             "name": "Macbook Pro M1 Pro",

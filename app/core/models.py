@@ -9,6 +9,8 @@ from django.contrib.auth.models import (
     PermissionsMixin
 )
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
@@ -122,3 +124,23 @@ class Payment(models.Model):
         related_name='product_payment'
     )
     date_time = models.DateTimeField(auto_now_add=True)
+
+class ProductImage(models.Model):
+    """Model to store images of product."""
+    p_id = models.ForeignKey(Product,on_delete=models.CASCADE,related_name='product_id_image')
+    image_url = models.ImageField(upload_to='images/')
+
+    def clean(self):
+        # Count the existing records with the same p_id
+        existing_images_count = ProductImage.objects.filter(p_id=self.p_id).count()
+
+        # Validate if the count exceeds the limit (5)
+        if existing_images_count >= 5:
+            raise ValidationError(
+                {'p_id': _('Maximum 5 images allowed per product.')}
+            )
+
+    def save(self, *args, **kwargs):
+        # Clean the model before saving to validate the limit
+        self.clean()
+        super().save(*args, **kwargs)

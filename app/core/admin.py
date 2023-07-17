@@ -156,6 +156,11 @@ class PaymentAdmin(admin.ModelAdmin):
             field.required = False  # Set the field as not required
 
         return field  
+    
+class ProductImageAdmin(admin.ModelAdmin):
+    """Admin panel for uploading product images"""
+    list_display = ['p_id','image_url']
+    list_per_page = 50
 
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Product, ProductAdmin)
@@ -163,3 +168,4 @@ admin.site.register(models.Review, ReviewAdmin)
 admin.site.register(models.Category, CategoryAdmin)
 admin.site.register(models.Cart, CartAdmin)
 admin.site.register(models.Payment, PaymentAdmin)
+admin.site.register(models.ProductImage,ProductImageAdmin)

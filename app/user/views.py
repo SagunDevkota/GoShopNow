@@ -23,6 +23,11 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()
+
     def get_object(self):
         """Retrieve and return the authenticated user."""
         return self.request.user

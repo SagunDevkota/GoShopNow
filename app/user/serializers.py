@@ -11,6 +11,26 @@ from rest_framework import serializers
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
+
+class PasswordValidator:
+    def __init__(self, min_length=8):
+        self.min_length = min_length
+
+    def validate(self, password, user_email):
+        if len(password) < self.min_length:
+            raise serializers.ValidationError(f"The password must be at least {self.min_length} characters long.")
+
+        if not any(char.isupper() for char in password):
+            raise serializers.ValidationError("The password must contain at least one capital letter.")
+
+        if not any(char in "!@#$%^&*()-_=+[]{}|;:'\",.<>/?`~" for char in password):
+            raise serializers.ValidationError("The password must contain at least one special character.")
+
+        if user_email.lower() in password.lower():
+            raise serializers.ValidationError("The password must not contain the email address.")
+
+        return password
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the user object."""
 
@@ -20,6 +40,17 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': 
                         {'write_only':True,'min_length':5}
                         }
+        
+    def validate(self, attrs):
+        email = attrs.get('email', None)
+        password = attrs.get('password', None)
+
+        if email and password:
+            password_validator = PasswordValidator()
+            password = password_validator.validate(password, email)
+
+        attrs['password'] = password
+        return attrs
         
     def create(self,validated_data):
         """Create and return a user with encrypted password."""
@@ -44,6 +75,17 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': 
                         {'write_only':True,'min_length':5}
                         }
+    
+    def validate(self, attrs):
+        email = attrs.get('email', None)
+        password = attrs.get('password', None)
+
+        if email and password:
+            password_validator = PasswordValidator()
+            password = password_validator.validate(password, email)
+
+        attrs['password'] = password
+        return attrs
 
 class AuthTokenSerializer(serializers.Serializer):
     """Serializer for the user auth token"""

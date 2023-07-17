@@ -32,4 +32,4 @@ ENV PATH="/py/bin:$PATH"
 USER django-user
 
 
-CMD python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 app.wsgi
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app.wsgi"]

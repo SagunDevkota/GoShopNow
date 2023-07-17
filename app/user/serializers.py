@@ -17,18 +17,20 @@ class PasswordValidator:
         self.min_length = min_length
 
     def validate(self, password, user_email):
+        errors = {"password":[]}
         if len(password) < self.min_length:
-            raise serializers.ValidationError(f"The password must be at least {self.min_length} characters long.")
+            errors["password"].append(f"The password must be at least {self.min_length} characters long.")
 
         if not any(char.isupper() for char in password):
-            raise serializers.ValidationError("The password must contain at least one capital letter.")
+            errors["password"].append("The password must contain at least one capital letter.")
 
         if not any(char in "!@#$%^&*()-_=+[]{}|;:'\",.<>/?`~" for char in password):
-            raise serializers.ValidationError("The password must contain at least one special character.")
+            errors["password"].append("The password must contain at least one special character.")
 
-        if user_email.lower() in password.lower():
-            raise serializers.ValidationError("The password must not contain the email address.")
-
+        if user_email.lower() in password.lower() or password.lower() in user_email.lower():
+            errors['password'].append("The password must not contain the email address.")
+        if(len(errors['password'])>0):
+            raise serializers.ValidationError(errors)
         return password
 
 class UserSerializer(serializers.ModelSerializer):
@@ -37,9 +39,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ['email','password','first_name','last_name','phone']
-        extra_kwargs = {'password': 
-                        {'write_only':True,'min_length':5}
-                        }
         
     def validate(self, attrs):
         email = attrs.get('email', None)

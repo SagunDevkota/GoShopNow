@@ -5,12 +5,12 @@ class PaymentSerializer(serializers.ModelSerializer):
     """Serializer for payment model."""
     class Meta:
         model = Payment
-        fields = ["id","quantity","status","product","transaction_id","date_time","user","amount"]
+        fields = ["id","quantity","status","transaction_id","date_time","user","amount"]
         read_only_fields = ["user"]
 
 class CreatePaymentSerializer(serializers.ModelSerializer):
     """Serializer for initiating payment."""
     class Meta:
         model = Payment
-        fields = ["product","quantity","date_time"]
+        fields = ["date_time"]
         read_only_fields = ["date_time"]

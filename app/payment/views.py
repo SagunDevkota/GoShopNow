@@ -6,18 +6,21 @@ from rest_framework.permissions import BasePermission
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.validators import ValidationError
+from drf_spectacular.openapi import OpenApiParameter
+from drf_spectacular.utils import extend_schema
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from payment import serializers,exceptions
 
-from core.models import Payment,Product,Cart
+from core.models import Payment,Product,Cart,PaymentProduct,User
 from core.pagination import CustomPagination
 
 import requests
 
 from django.conf import settings
 from django.urls import reverse
+from django.http import HttpResponseForbidden
 import uuid
 import json
 
@@ -56,6 +59,7 @@ class PaymentViewSet(viewsets.GenericViewSet,
         data = serializer.data
         product_details = []
         total_amount = 0
+        print(data)
         if("product" in data.keys() and "quantity" in data.keys()):
             item = {}
             item["p_id_id"] = data["product"].p_id
@@ -66,14 +70,22 @@ class PaymentViewSet(viewsets.GenericViewSet,
         else:
             items = list(Cart.objects.filter(user=self.request.user).values())
 
+        print(items)
+        product_details = []
+        total_quantity = 0
+        total_amount = 0
         for item in items:
             record = {}
             product = Product.objects.get(p_id=item["p_id_id"])
             record["name"] = product.name
             record["unit_price"] = product.price
             record["quantity"] = item['quantity']
+            record["total_price"] = item["quantity"]*product.price
+            record["identity"] = str(product.p_id)
+            record['id'] = item["p_id_id"]
             product_details.append(record)
             total_amount += product.price*item["quantity"]
+            total_quantity += item['quantity']
 
         purchase_id = generate_unique_id()
         payload = {
@@ -87,20 +99,38 @@ class PaymentViewSet(viewsets.GenericViewSet,
         headers = {
             "Authorization" : settings.KHALTI_API_KEY
         }
-        response = requests.post(url=settings.PAYMENT_URL, data=json.dumps(payload), headers=headers)
-        print(response.content)
         try:
-            response = requests.post(url=settings.PAYMENT_URL, data=json.dumps(payload), headers=headers)
+            response = requests.post(url=settings.PAYMENT_URL, json=payload, headers=headers)
             response_data = response.json()
         except:
             raise exceptions.ServiceUnavailable()
         if response.status_code == 200:
-            serializer.save(user=self.request.user, id=response_data["pidx"],amount=total_amount)
+            payment = Payment.objects.create(user=self.request.user, id=response_data["pidx"],amount=total_amount,quantity=total_quantity)
+            payment.save()
+            for product_detail in product_details:
+                product = Product.objects.get(p_id=product_detail['id'])
+                payment_product = PaymentProduct.objects.create(payment_id=payment,
+                                                                amount=product_detail['total_price'],
+                                                                quantity=product_detail['quantity'],
+                                                                product=product)
+                payment_product.save()
+
             response_data["message"] = "Success"
             return Response(data=response_data, status=status.HTTP_201_CREATED)
         elif response.status_code == 400:
             raise ValidationError(response_data)
         
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='pidx',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+            OpenApiParameter(name='txnId',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+            OpenApiParameter(name='amount',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+            OpenApiParameter(name='mobile',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+            OpenApiParameter(name='purchase_order_id',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+            OpenApiParameter(name='purchase_order_name',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+            OpenApiParameter(name='transaction_id',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+        ],
+    )
     def validate(self, request, *args, **kwargs):
         pidx = self.request.query_params.get("pidx")
         transaction_id = self.request.query_params.get("transaction_id")
@@ -122,18 +152,26 @@ class PaymentViewSet(viewsets.GenericViewSet,
                 try:
                     response = requests.post(url=settings.PAYMENT_LOOKUP_URL, data=payload, headers=headers)
                     response_data = response.json()
-                    if(response_data['status'] == "Completed"):
-                        payment.status = response_data['status']
-                        payment.transaction_id = response_data['transaction_id']
-                        payment.amount = float(amount)/100
-                        product = Product.objects.get(p_id = payment.product.p_id)
-                        product.stock -= payment.quantity
-                        product.save()
-                        payment.save()
-                    else:
-                        print("NC")
                 except Exception as e:
                     raise exceptions.ServiceUnavailable()
+                
+                if(response_data['status'] == "Completed"):
+                    payment.status = response_data['status']
+                    payment.transaction_id = response_data['transaction_id']
+                    payment.amount = float(amount)/100
+                    payment_products = PaymentProduct.objects.filter(payment_id = response_data['pidx'])
+                    for payment_product in payment_products:
+                        product = Product.objects.get(p_id=payment_product.product.p_id)
+                        product.stock -= payment_product.quantity
+                        product.save()
+                    try:
+                        Cart.objects.filter(user=self.request.user).delete()
+                        
+                    except:
+                        return HttpResponseForbidden("You are not authorized")
+                    payment.save()
+                else:
+                    print("NC")
             serializer = self.get_serializer(payment)
             return Response(serializer.data)
         

@@ -38,7 +38,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ['email','password','first_name','last_name','phone']
+        fields = ['email','first_name','last_name','phone']
         
     def validate(self, attrs):
         email = attrs.get('email', None)

@@ -118,12 +118,14 @@ class Payment(models.Model):
         on_delete=models.CASCADE,
         related_name="user_payment"
     )
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.DO_NOTHING,
-        related_name='product_payment'
-    )
     date_time = models.DateTimeField(auto_now_add=True)
+
+class PaymentProduct(models.Model):
+    """Products in each payment."""
+    payment_id = models.ForeignKey(Payment,on_delete=models.CASCADE)
+    product = models.ForeignKey(Product,on_delete=models.DO_NOTHING,related_name='product_payment')
+    quantity = models.IntegerField(validators=[MinValueValidator(1)])
+    amount = models.FloatField()
 
 class ProductImage(models.Model):
     """Model to store images of product."""

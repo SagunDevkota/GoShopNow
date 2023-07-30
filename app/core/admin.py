@@ -146,7 +146,7 @@ class CartAdmin(admin.ModelAdmin):
 
 class PaymentAdmin(admin.ModelAdmin):
     """Define admin panel for payment."""
-    list_display = ['id',"quantity","status","user","product"]
+    list_display = ['id',"quantity","status","user"]
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         field = super().formfield_for_dbfield(db_field, **kwargs)

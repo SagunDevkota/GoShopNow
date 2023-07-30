@@ -59,7 +59,6 @@ class PaymentViewSet(viewsets.GenericViewSet,
         data = serializer.data
         product_details = []
         total_amount = 0
-        print(data)
         if("product" in data.keys() and "quantity" in data.keys()):
             item = {}
             item["p_id_id"] = data["product"].p_id
@@ -70,7 +69,6 @@ class PaymentViewSet(viewsets.GenericViewSet,
         else:
             items = list(Cart.objects.filter(user=self.request.user).values())
 
-        print(items)
         product_details = []
         total_quantity = 0
         total_amount = 0
@@ -164,11 +162,10 @@ class PaymentViewSet(viewsets.GenericViewSet,
                         product = Product.objects.get(p_id=payment_product.product.p_id)
                         product.stock -= payment_product.quantity
                         product.save()
-                    try:
-                        Cart.objects.filter(user=self.request.user).delete()
-                        
-                    except:
-                        return HttpResponseForbidden("You are not authorized")
+                    Cart.objects.filter(user=payment.user).delete()
+                    user = User.objects.get(id=payment.user.id)
+                    user.reward_points += payment.amount/100
+                    user.save()
                     payment.save()
                 else:
                     print("NC")

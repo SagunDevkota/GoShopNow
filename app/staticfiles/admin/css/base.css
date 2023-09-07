@@ -5,9 +5,9 @@
 /* VARIABLE DEFINITIONS */
 html[data-theme="light"],
 :root {
-    --primary: #79aec8;
-    --secondary: #417690;
-    --accent: #f5dd5d;
+    --primary: #b8b8b8;
+    --secondary: #b8b8b8;
+    --accent: black;
     --primary-fg: #fff;
 
     --body-fg: #333;
@@ -98,6 +98,7 @@ body {
     font-size: 0.875rem;
     font-family: var(--font-family-primary);
     color: var(--body-fg);
+    background-image: url("back.avif");
     background: var(--body-bg);
 }
 

@@ -15,14 +15,14 @@ from payment import serializers,exceptions
 
 from core.models import Payment,Product,Cart,PaymentProduct,User
 from core.pagination import CustomPagination
+from core.services.mail_sender import send_email
+from core.services.pdf_generator import generate
 
 import requests
 
 from django.conf import settings
 from django.urls import reverse
-from django.http import HttpResponseForbidden
 import uuid
-import json
 
 def generate_unique_id():
     return str(uuid.uuid4())
@@ -120,13 +120,13 @@ class PaymentViewSet(viewsets.GenericViewSet,
         
     @extend_schema(
         parameters=[
-            OpenApiParameter(name='pidx',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
-            OpenApiParameter(name='txnId',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
-            OpenApiParameter(name='amount',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
-            OpenApiParameter(name='mobile',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
-            OpenApiParameter(name='purchase_order_id',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
-            OpenApiParameter(name='purchase_order_name',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
-            OpenApiParameter(name='transaction_id',location=OpenApiParameter.QUERY, description='Product ID', required=False, type=str),
+            OpenApiParameter(name='pidx',location=OpenApiParameter.QUERY, description='pidx', required=False, type=str),
+            OpenApiParameter(name='txnId',location=OpenApiParameter.QUERY, description='txnId', required=False, type=str),
+            OpenApiParameter(name='amount',location=OpenApiParameter.QUERY, description='amount', required=False, type=str),
+            OpenApiParameter(name='mobile',location=OpenApiParameter.QUERY, description='mobile', required=False, type=str),
+            OpenApiParameter(name='purchase_order_id',location=OpenApiParameter.QUERY, description='Purchase Order ID', required=False, type=str),
+            OpenApiParameter(name='purchase_order_name',location=OpenApiParameter.QUERY, description='Purchase Order Name', required=False, type=str),
+            OpenApiParameter(name='transaction_id',location=OpenApiParameter.QUERY, description='Transaction ID', required=False, type=str),
         ],
     )
     def validate(self, request, *args, **kwargs):
@@ -158,10 +158,17 @@ class PaymentViewSet(viewsets.GenericViewSet,
                     payment.transaction_id = response_data['transaction_id']
                     payment.amount = float(amount)/100
                     payment_products = PaymentProduct.objects.filter(payment_id = response_data['pidx'])
+                    payment_detail_list = [['Product Name','Unit Price','Units','Subtotal']]
                     for payment_product in payment_products:
                         product = Product.objects.get(p_id=payment_product.product.p_id)
                         product.stock -= payment_product.quantity
+                        if(product.stock < product.threshold):
+                            send_email("Threshold Reached",f"The product {product.name} with id: {product.p_id} is going out of stock.",[settings.EMAIL_HOST_USER],'')
                         product.save()
+
+                        payment_detail_list.append([product.name,product.price,payment_product.quantity,payment_product.amount])
+
+                    generate(response_data['pidx']+'.pdf',payment_detail_list)
                     Cart.objects.filter(user=payment.user).delete()
                     user = User.objects.get(id=payment.user.id)
                     user.reward_points += payment.amount/100

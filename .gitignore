@@ -4,6 +4,7 @@ ckeditor/
 rest_framework/
 static/
 desctiption/
+staticfiles/
 media/
 config.py
 *.py[cod]

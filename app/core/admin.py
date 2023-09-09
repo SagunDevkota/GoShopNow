@@ -146,7 +146,8 @@ class CartAdmin(admin.ModelAdmin):
 
 class PaymentAdmin(admin.ModelAdmin):
     """Define admin panel for payment."""
-    list_display = ['id',"quantity","status","user"]
+    list_display = ['id',"quantity","status","user",'date_time']
+    readonly_fields = ['date_time']
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         field = super().formfield_for_dbfield(db_field, **kwargs)
@@ -156,6 +157,10 @@ class PaymentAdmin(admin.ModelAdmin):
             field.required = False  # Set the field as not required
 
         return field  
+    
+class PaymentProductsAdmin(admin.ModelAdmin):
+    """Define admin panel for individual product in payment"""
+    list_display = ['payment_id','product']
     
 class ProductImageAdmin(admin.ModelAdmin):
     """Admin panel for uploading product images"""
@@ -169,3 +174,4 @@ admin.site.register(models.Category, CategoryAdmin)
 admin.site.register(models.Cart, CartAdmin)
 admin.site.register(models.Payment, PaymentAdmin)
 admin.site.register(models.ProductImage,ProductImageAdmin)
+admin.site.register(models.PaymentProduct,PaymentProductsAdmin)

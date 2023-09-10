@@ -42,7 +42,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=50)
     phone = models.CharField(max_length=10)
     email = models.EmailField(max_length=255, unique=True)
-    is_active = models.BooleanField(default=True)
+    token = models.CharField(max_length=36,unique=True)
+    is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     reward_points = models.IntegerField(default=0)
 

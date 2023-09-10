@@ -19,4 +19,5 @@ urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('profile/',views.ManageUserView.as_view(), name='profile'),
+    path('profile/activate/<str:token>/',views.ActivateAccountView.as_view(), name='activate-account'),
 ]

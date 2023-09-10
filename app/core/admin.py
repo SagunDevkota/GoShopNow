@@ -33,7 +33,8 @@ class UserAdmin(BaseUserAdmin):
                 'phone',
                 'email',
                 'password',
-                'reward_points'
+                'reward_points',
+                'token'
                 )}),
         (
             _('Permissions'),
@@ -61,6 +62,7 @@ class UserAdmin(BaseUserAdmin):
                 'is_active',
                 'is_staff',
                 'is_superuser',
+                'token'
             )
         }),
     )

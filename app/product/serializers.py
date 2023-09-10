@@ -7,6 +7,8 @@ from core.models import Product,ProductImage
 
 from review.serializers import ReviewSerializer
 
+from typing import Optional
+
 class ProductImageSerializer(serializers.ModelSerializer):
     """Serializer for product images."""
 
@@ -31,7 +33,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['p_id', 'name', 'price', 'rating', 'category', 'image_url']
         read_only_fields = ['rating', 'p_id']
 
-    def get_image_url(self, product):
+    def get_image_url(self, product) -> Optional[str]:
         return self.get_first_image_url(product)
 
 class ProductDetailSerializer(serializers.ModelSerializer):

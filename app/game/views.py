@@ -12,13 +12,13 @@ from django.http import HttpResponse
 from core.models import User
 from game.slot_machine import SlotMachine
 
-import json
 
 class SlotMachineViewSet(APIView):
     """API view for SlotMachine."""
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     slot_machine = SlotMachine()
+    serializer_class = None
 
     @extend_schema(
             parameters=[OpenApiParameter(name="bet",location=OpenApiParameter.QUERY, description='Bet', required=False, type=str)]
@@ -36,8 +36,6 @@ class SlotMachineViewSet(APIView):
             "000":bet_amount<br>
         }
         """
-        print(request.query_params.get("bet") in ['10','50','100'])
-        print("bet" in request.query_params.keys())
         if("bet" in request.query_params.keys()):
             if(request.query_params.get("bet") in ['10','50','100']):
                 self.slot_machine.set_bet(int(request.query_params["bet"]))

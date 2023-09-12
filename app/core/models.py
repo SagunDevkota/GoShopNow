@@ -62,7 +62,7 @@ class Product(models.Model):
     price = models.FloatField()
     threshold = models.IntegerField(validators=[MinValueValidator(0)])
     stock = models.IntegerField(validators=[MinValueValidator(0)])
-    rating = models.FloatField(validators=[MinValueValidator(1.0,"Minimum value muct be 1"),MaxValueValidator(5.0,"Maximum value must be 5")],null=True,default=None)
+    rating = models.FloatField(validators=[MinValueValidator(1.0,"Minimum value muct be 1"),MaxValueValidator(5.0,"Maximum value must be 5")],default=0)
     description = models.CharField(max_length=200,default=None,null=True)
     category = models.ForeignKey(
         Category,

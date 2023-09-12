@@ -10,6 +10,7 @@ from django.conf import settings
 from ckeditor.widgets import CKEditorWidget
 from admincharts.admin import AdminChartMixin
 from admincharts.utils import months_between_dates
+from django.db.models import F
 
 from core import models
 
@@ -138,21 +139,29 @@ class ProductAdmin(admin.ModelAdmin):
 
 class ReviewAdmin(admin.ModelAdmin):
     """Define admin page for review."""
-    list_display = ['id','review','user']
+    list_display = ['id','p_id','review','user']
+    readonly_fields = ['product_name','user']
+    search_fields = ['p_id__name']
+    def product_name(self,obj):
+        return obj.p_id.name
 
 class CategoryAdmin(admin.ModelAdmin):
     """Define category page for product."""
     list_display = ['category']
+    search_fields = ['category']
 
 class CartAdmin(admin.ModelAdmin):
     """Define cart page for product purchase."""
     list_display = ['id','p_id','quantity','user']
+    search_fields = ['user__first_name','user__email']
 
 class PaymentAdmin(AdminChartMixin,admin.ModelAdmin):
     """Define admin panel for payment."""
     list_display = ['id',"quantity","status","user",'date_time']
     readonly_fields = ['date_time']
     list_filter = ['date_time']
+    ordering = ['-date_time']
+    search_fields = ['id']
     start_date = None
     end_date = None
 
@@ -212,13 +221,26 @@ class PaymentAdmin(AdminChartMixin,admin.ModelAdmin):
     
 class PaymentProductsAdmin(AdminChartMixin,admin.ModelAdmin):
     """Define admin panel for individual product in payment"""
+    fields = ['payment_id','product','product_name','quantity','amount','date']
     list_display = ['payment_id','product']
     list_filter = ['payment_id__date_time']
+    readonly_fields = ['product_name',"date"]
+    ordering = ['payment_id__date_time']
+    search_fields = ['payment_id__id']
     start_date = None
     end_date = None
 
+    def product_name(self, obj):
+        return obj.product.name
+    
+    def date(self,obj):
+        return obj.payment_id.date_time
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        qs = qs.annotate(
+            product_name=F('product__name')
+            )
         if self.start_date and self.end_date:
             qs = qs.filter(
                 payment_id__date_time__range=[self.start_date, self.end_date]  
@@ -243,9 +265,9 @@ class PaymentProductsAdmin(AdminChartMixin,admin.ModelAdmin):
         name_of_chart = "Hero products by number of sales."
         for x in queryset:
             if(x.product.name not in label_total.keys()):
-                label_total[x.product.name] = 1
+                label_total[x.product.name] = x.quantity
             else:
-                label_total[x.product.name] += 1
+                label_total[x.product.name] += x.quantity
         return {
             "labels": list(label_total.keys()),
             "datasets": [

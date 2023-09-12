@@ -8,6 +8,8 @@ from django.utils.translation import gettext_lazy as _
 from django import forms
 from django.conf import settings
 from ckeditor.widgets import CKEditorWidget
+from admincharts.admin import AdminChartMixin
+from admincharts.utils import months_between_dates
 
 from core import models
 
@@ -146,10 +148,13 @@ class CartAdmin(admin.ModelAdmin):
     """Define cart page for product purchase."""
     list_display = ['id','p_id','quantity','user']
 
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(AdminChartMixin,admin.ModelAdmin):
     """Define admin panel for payment."""
     list_display = ['id',"quantity","status","user",'date_time']
     readonly_fields = ['date_time']
+    list_filter = ['date_time']
+    start_date = None
+    end_date = None
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         field = super().formfield_for_dbfield(db_field, **kwargs)
@@ -160,9 +165,94 @@ class PaymentAdmin(admin.ModelAdmin):
 
         return field  
     
-class PaymentProductsAdmin(admin.ModelAdmin):
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if self.start_date and self.end_date:
+            qs = qs.filter(date_time__range=[self.start_date, self.end_date])
+        return qs
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['date_form'] = True
+        if 'start_date' in request.GET and 'end_date' in request.GET:
+            self.start_date = request.GET['start_date'] 
+            self.end_date = request.GET['end_date']
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def get_list_chart_data(self, queryset):
+        if not queryset:
+            return {}
+
+        earliest = min([x.date_time for x in queryset])
+        now = max([x.date_time for x in queryset])
+
+        labels = []
+        totals = []
+        name_of_chart = "Hero products by number of sales."
+        for b in months_between_dates(earliest, now):
+            labels.append(b.strftime("%b %Y"))
+            total_revenue = 0
+            for x in queryset:
+                if(x.date_time.year == b.year and x.date_time.month == b.month):
+                    if(x.status == "Completed"):
+                        if(x.amount):
+                            total_revenue+=x.amount
+            
+            totals.append(total_revenue)
+
+        return {
+            "labels": labels,
+            "datasets": [
+                {"label": "Total Revenue", "data": totals, "backgroundColor": "#79aec8"},
+            ],
+            "name_of_chart":"Total Revenue"
+        }
+    
+    
+class PaymentProductsAdmin(AdminChartMixin,admin.ModelAdmin):
     """Define admin panel for individual product in payment"""
     list_display = ['payment_id','product']
+    list_filter = ['payment_id__date_time']
+    start_date = None
+    end_date = None
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if self.start_date and self.end_date:
+            qs = qs.filter(
+                payment_id__date_time__range=[self.start_date, self.end_date]  
+            )
+
+        return qs
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['date_form'] = True
+        if 'start_date' in request.GET and 'end_date' in request.GET:
+            self.start_date = request.GET['start_date'] 
+            self.end_date = request.GET['end_date']
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def get_list_chart_data(self, queryset):
+        if not queryset:
+            return {}
+
+        label_total = {}
+        name_of_chart = "Hero products by number of sales."
+        for x in queryset:
+            if(x.product.name not in label_total.keys()):
+                label_total[x.product.name] = 1
+            else:
+                label_total[x.product.name] += 1
+        return {
+            "labels": list(label_total.keys()),
+            "datasets": [
+                {"label": "Total sales unit of product", "data": list(label_total.values()), "backgroundColor": "#79aec8"},
+            ],
+            "name_of_chart": name_of_chart
+        }
     
 class ProductImageAdmin(admin.ModelAdmin):
     """Admin panel for uploading product images"""

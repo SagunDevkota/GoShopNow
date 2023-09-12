@@ -100,7 +100,6 @@
         {% endblock messages %}
         <!-- Content -->
         <div id="content" class="{% block coltype %}colM{% endblock %}">
-          {% block pretitle %}{% endblock %}
           {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
           {% block content_subtitle %}{% if subtitle %}<h2>{{ subtitle }}</h2>{% endif %}{% endblock %}
           {% block content %}
@@ -108,6 +107,11 @@
             {{ content }}
           {% endblock %}
           {% block sidebar %}{% endblock %}
+          {% if adminchart_chartjs_config.data.name_of_chart %}
+            <p><b>Title: </b>: {{ adminchart_chartjs_config.data.name_of_chart }}</p>
+          {% endif %}
+          <!-- <p>{{ adminchart_chartjs_config.name_of_chart }}</p> -->
+          {% block pretitle %}{% endblock %}
           <br class="clear">
         </div>
         <!-- END Content -->

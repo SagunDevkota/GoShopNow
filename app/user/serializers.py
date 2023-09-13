@@ -13,7 +13,7 @@ from rest_framework import serializers
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from core.services.mail_sender import send_email
+from core.tasks import send_email
 import uuid
 
 class PasswordValidator:
@@ -70,7 +70,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         current_site = get_current_site(self.context['request'])
         activation_link = f"http://{current_site.domain}{activation_url}"
-        send_email("GoShopNow: Activate Account",f"Activate the account {activation_link}",[user.email],'')
+        send_email.delay("GoShopNow: Activate Account",f"Activate the account {activation_link}",[user.email],'')
         user.token = token
         user.save()
         return user

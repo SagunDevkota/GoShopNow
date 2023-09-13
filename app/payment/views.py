@@ -12,6 +12,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from payment import serializers,exceptions
+from core.tasks import send_email
 
 from core.models import Payment,Product,Cart,PaymentProduct,User
 from core.pagination import CustomPagination
@@ -163,7 +164,7 @@ class PaymentViewSet(viewsets.GenericViewSet,
                         product = Product.objects.get(p_id=payment_product.product.p_id)
                         product.stock -= payment_product.quantity
                         if(product.stock < product.threshold):
-                            send_email("Threshold Reached",f"The product {product.name} with id: {product.p_id} is going out of stock.",[settings.EMAIL_HOST_USER],'')
+                            send_email.delay("Threshold Reached",f"The product {product.name} with id: {product.p_id} is going out of stock.",[settings.EMAIL_HOST_USER],'')
                         product.save()
 
                         payment_detail_list.append([product.name,product.price,payment_product.quantity,payment_product.amount])

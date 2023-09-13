@@ -10,3 +10,4 @@
 * sorting by price,rating
 * redis cache
 * Trending purchases for last month using django celery beat
+* elastic search

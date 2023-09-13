@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     "corsheaders",
     'ckeditor',
+    'django_celery_beat',
     'core',
     'user',
     'product',
@@ -191,3 +192,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get("email","")
 EMAIL_HOST_PASSWORD = os.environ.get("password","")
+
+CELERY_broker_url = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
+result_backend = os.environ.get("CELERY_BACKEND", "redis://redis:6379/0")
+CELERY_broker_connection_retry_on_startup = True

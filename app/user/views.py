@@ -12,7 +12,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from user.serializers import (
     UserSerializer,
-    UserDetailsSerializer
+    UserDetailsSerializer,
+    UserActivationSerialider
 )
 
 
@@ -45,8 +46,10 @@ class ActivateAccountView(generics.RetrieveAPIView):
     """
     Activate the user account.
     """
+    
+    serializer_class = UserActivationSerialider
+
     def get(self, request, *args, **kwargs):
-        print(kwargs)
         if('token' in kwargs.keys()):
             user = get_object_or_404(get_user_model().objects.filter(token=kwargs["token"]))
             user.is_active = True

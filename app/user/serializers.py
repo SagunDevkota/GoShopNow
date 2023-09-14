@@ -140,3 +140,7 @@ class AuthTokenSerializer(serializers.Serializer):
             'refresh': str(refresh),
         }
         return tokens
+    
+class UserActivationSerialider(serializers.Serializer):
+    """Serializer for user actiovation"""
+    pass

@@ -11,7 +11,9 @@ from ckeditor.widgets import CKEditorWidget
 from admincharts.admin import AdminChartMixin
 from admincharts.utils import months_between_dates
 from django.db.models import F
+from elasticsearch_dsl import Index
 
+from core.documents import ProductDocument
 from core import models
 
 import os
@@ -102,15 +104,37 @@ class ProductAdmin(admin.ModelAdmin):
             try:
                 with open(self.get_html_file_path(obj.p_id), 'w') as file:
                     file.write(form.cleaned_data["extra"])
-                obj.description = self.get_html_file_url(obj.p_id)  # Set the description field to the file URL
+                obj.description = self.get_html_file_url(obj.p_id)
             except FileNotFoundError:
                 pass
         else:
             obj.save()
             file_content = form.cleaned_data["extra"]
             self.update_html_file(obj.p_id, file_content)
-            obj.description = self.get_html_file_url(obj.p_id)  # Set the description field to the file URL
+            obj.description = self.get_html_file_url(obj.p_id)
         super().save_model(request, obj, form, change)
+        image_url = models.ProductImage.objects.filter(p_id=obj).first()
+        if(image_url):
+            image_url = image_url.image_url.url
+        else:
+            image_url = ''
+        product_document = ProductDocument(
+            meta={'id': obj.p_id},
+            p_id=obj.p_id,
+            name=obj.name,
+            price=obj.price,
+            rating=obj.rating,
+            category=obj.category.category, 
+            stock=obj.stock,
+            threshold=obj.threshold,
+            description=obj.description,
+            image_url=image_url
+        )
+
+        product_document.save()
+
+        product_document_index = Index('product')
+        product_document_index.refresh()
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)

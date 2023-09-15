@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'rest_framework',
     'rest_framework_simplejwt',
+    'django_elasticsearch_dsl',
+    'django_elasticsearch_dsl_drf',
     "corsheaders",
     'ckeditor',
     'django_celery_beat',
@@ -148,6 +150,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'core.User'
 
+# REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS' : "drf_spectacular.openapi.AutoSchema",
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -155,16 +158,21 @@ REST_FRAMEWORK = {
     ),
 }
 
+# JWT Token Config
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=35),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+
+# Khalti API config
 PAYMENT_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
 PAYMENT_LOOKUP_URL = "https://a.khalti.com/api/v2/epayment/lookup/"
 KHALTI_API_KEY = os.environ.get("KHALTI_API_KEY")
 
+
+#CK editior config
 CKEDITOR_FILE_PATH = "static/description"
 CKEDITOR_UPLOAD_PATH = "static/uploads/"
 CKEDITOR_IMAGE_BACKEND = "pillow"
@@ -178,7 +186,7 @@ CKEDITOR_CONFIGS = {
     },
 }
 
-
+# CORS config
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost",
@@ -186,6 +194,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
 ]
 
+# Mail Sender Config
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -193,6 +202,14 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get("email","")
 EMAIL_HOST_PASSWORD = os.environ.get("password","")
 
+# Celery Config
 CELERY_broker_url = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
 result_backend = os.environ.get("CELERY_BACKEND", "redis://redis:6379/0")
 CELERY_broker_connection_retry_on_startup = True
+
+# Elastic Search Config
+ELASTICSEARCH_DSL = {
+    "default": {
+        "hosts": "http://es:9200",
+    },
+}

@@ -12,3 +12,5 @@ reportlab>=4.0.4,<4.1
 django-admincharts>=0.4.1,<0.5
 django-celery-beat>=2.5.0,<2.6
 redis>=5.0.0,<5.1
+django-elasticsearch-dsl>=7.3,<7.4
+django-elasticsearch-dsl-drf>=0.22.5,<0.23

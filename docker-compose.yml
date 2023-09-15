@@ -21,7 +21,7 @@ services:
     depends_on:
       - db
       - redis
-  
+      - es
   db:
     image: postgres:13-alpine
     volumes:
@@ -42,6 +42,12 @@ services:
       - .env
   redis:
     image: 'redis:alpine'
+  es:
+    image: elasticsearch:7.17.12
+    environment:
+      - discovery.type=single-node 
+    ports:
+      - 9200:9200
 
 volumes:
   dev-db-data:

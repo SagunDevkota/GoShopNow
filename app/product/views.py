@@ -3,32 +3,51 @@
 from rest_framework import viewsets
 from rest_framework import mixins
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.openapi import OpenApiParameter
 from drf_spectacular.utils import extend_schema
+from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
+from django_elasticsearch_dsl_drf.filter_backends import CompoundSearchFilterBackend,FilteringFilterBackend
 
 from product import serializers
 from core.pagination import CustomPagination
 from core.models import Product,Review
+from core.documents import ProductDocument
     
 class ProductViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    DocumentViewSet
     ):
-    serializer_class = serializers.ProductSerializer
+    document = ProductDocument
+    serializer_class = serializers.ProductDocumentSerializer
     queryset = Product.objects.order_by('-p_id')
     pagination_class = CustomPagination
+    filter_backends = [FilteringFilterBackend,  CompoundSearchFilterBackend]
+
+    search_fields = ['name']
+
+    multi_match_search_fields = ['name']
+
+    filter_fields = {'name':'name'}
+
+    http_method_names = ['get']
 
     @extend_schema(
         parameters=[
             OpenApiParameter(name='price',location=OpenApiParameter.QUERY, description='1=asc,0=default,-1=des', required=False, type=str),
             OpenApiParameter(name='rating',location=OpenApiParameter.QUERY, description='1=asc,0=default,-1=des', required=False, type=str),
+            OpenApiParameter(name='search',location=OpenApiParameter.QUERY, description='Search Query', required=False, type=str),
         ],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.queryset.get(p_id=kwargs['pk'])
+        serializer = self.get_serializer_class()
+        data = serializer(instance).data
+        return Response(data)
+  
     def get_queryset(self):
         query_set = super().get_queryset()
         price_ordering = self.request.query_params.get("price", "0")
@@ -47,11 +66,9 @@ class ProductViewSet(
             order_rating = 'rating'
         elif rating_ordering == -1:
             order_rating = '-rating'
-        
         order_fields = [field for field in [order_price, order_rating] if field is not None]
         if order_fields:
-            query_set = query_set.order_by(*order_fields)
-        
+            query_set = query_set.sort(*order_fields)
         return query_set
 
 
@@ -62,3 +79,5 @@ class ProductViewSet(
     
     # def get_queryset(self):
     #     return self.queryset.order_by("-p_id")
+
+    

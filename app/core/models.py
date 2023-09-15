@@ -11,6 +11,7 @@ from django.contrib.auth.models import (
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+import uuid
 
 
 class UserManager(BaseUserManager):
@@ -21,6 +22,7 @@ class UserManager(BaseUserManager):
             raise ValueError("User must have an email address.")
         user = self.model(email=self.normalize_email(email),**extra_fields)
         user.set_password(password)
+        user.token = str(uuid.uuid4())
         user.save(using=self._db)
         return user
     

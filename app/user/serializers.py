@@ -61,18 +61,14 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self,validated_data):
         """Create and return a user with encrypted password."""
         user = get_user_model().objects.create_user(**validated_data)
-        
-        token = str(uuid.uuid4())
 
         activation_url = reverse('user:activate-account', kwargs={
-            'token': token,
+            'token': user.token,
         })
 
         current_site = get_current_site(self.context['request'])
         activation_link = f"http://{current_site.domain}{activation_url}"
         send_email.delay("GoShopNow: Activate Account",f"Activate the account {activation_link}",[user.email],'')
-        user.token = token
-        user.save()
         return user
     
     def update(self,instance,validated_data):

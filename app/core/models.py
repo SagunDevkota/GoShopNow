@@ -58,7 +58,7 @@ class Category(models.Model):
 class Product(models.Model):
     """Create Product Table."""
     p_id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
     price = models.FloatField()
     threshold = models.IntegerField(validators=[MinValueValidator(0)])
     stock = models.IntegerField(validators=[MinValueValidator(0)])

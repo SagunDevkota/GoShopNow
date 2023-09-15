@@ -4,11 +4,12 @@ Tests for product review api.
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from core.models import Review,Product,Category,Payment
+from core.models import Review,Product,Category,Payment,PaymentProduct
 from django.urls import reverse
 
 from rest_framework.test import APIClient
 from rest_framework import status
+from datetime import datetime
 
 
 REVIEW_LIST = reverse("review:review-list")
@@ -34,6 +35,10 @@ def create_user(**params):
 def create_payment(**params):
     """create and return a new payment object."""
     return Payment.objects.create(**params)
+
+def create_payment_product(**params):
+    """create and return a new payment product object."""
+    return PaymentProduct.objects.create(**params)
 
 
 class PublicUserApiTests(TestCase):
@@ -78,9 +83,16 @@ class PublicUserApiTests(TestCase):
             "transaction_id":"transaction",
             "amount":123,
             "user":self.user,
-            "product":self.product
+            "date_time":datetime.now()
         }
-        create_payment(**payment)
+        payment = create_payment(**payment)
+        payment_product = {
+            'payment_id':payment,
+            'product':self.product,
+            'quantity':1,
+            'amount':100
+        }
+        create_payment_product(**payment_product)
         res = self.client.post(REVIEW_LIST, review)
         res = self.client.get(REVIEW_LIST+"?p_id="+str(res.json()["p_id"]))
         self.assertEqual(res.status_code,status.HTTP_200_OK)
@@ -97,6 +109,7 @@ class PrivateRviewAPITests(TestCase):
             "password" : "test123"
         }
         self.user = create_user(**user)
+        self.user.is_active = True
         self.client.force_authenticate(self.user)
         product = {
             "name": "Macbook Pro M1 Pro",
@@ -126,9 +139,16 @@ class PrivateRviewAPITests(TestCase):
             "transaction_id":"transaction",
             "amount":123,
             "user":self.user,
-            "product":product
+            "date_time":datetime.now()
         }
-        create_payment(**payment)
+        payment = create_payment(**payment)
+        payment_product = {
+            'payment_id':payment,
+            'product':self.product,
+            'quantity':1,
+            'amount':100
+        }
+        create_payment_product(**payment_product)
         self.review = create_review(**review)
     
     def test_create_review_success(self):
@@ -146,9 +166,17 @@ class PrivateRviewAPITests(TestCase):
             "transaction_id":"transaction",
             "amount":123,
             "user":self.user,
-            "product":self.product
+            "date_time":datetime.now()
         }
-        create_payment(**payment)
+        payment = create_payment(**payment)
+
+        payment_product = {
+            'payment_id':payment,
+            'product':self.product,
+            'quantity':1,
+            'amount':100
+        }
+        create_payment_product(**payment_product)
         res = self.client.post(REVIEW_LIST, review)
         self.assertEqual(res.status_code,status.HTTP_201_CREATED)
 
@@ -166,7 +194,7 @@ class PrivateRviewAPITests(TestCase):
     def test_invalid_rating(self):
         """Throw error if rating is invalid."""
         review = {
-            "p_id": self.product.p_id,  # Use "p_id" as the key
+            "p_id": self.product,  # Use "p_id" as the key
             "review": "good",
             "rating": 6,
         }
@@ -175,7 +203,7 @@ class PrivateRviewAPITests(TestCase):
         self.assertIn("rating",res.json().keys())
 
         review = {
-            "p_id": self.product.p_id,  # Use "p_id" as the key
+            "p_id": self.product,  # Use "p_id" as the key
             "review": "good",
             "rating": 0,
         }
@@ -199,7 +227,7 @@ class PrivateRviewAPITests(TestCase):
             "transaction_id":"transaction",
             "amount":123,
             "user":self.user,
-            "product":self.product
+            "date_time":datetime.now()
         }
         create_payment(**payment)
         res = self.client.post(REVIEW_LIST, review)
@@ -208,7 +236,7 @@ class PrivateRviewAPITests(TestCase):
     def test_create_review_without_purchase(self):
         """Raise error if review is attempted before purchase."""
         review = {
-            "p_id": self.product.p_id,  # Use "p_id" as the key
+            "p_id": self.product,  # Use "p_id" as the key
             "review": "good",
             "rating": 4,
             "user":1,
@@ -231,9 +259,16 @@ class PrivateRviewAPITests(TestCase):
             "transaction_id":"transaction",
             "amount":123,
             "user":self.user,
-            "product":self.product
+            "date_time":datetime.now()
         }
-        create_payment(**payment)
+        payment = create_payment(**payment)
+        payment_product = {
+            'payment_id':payment,
+            'product':self.product,
+            'quantity':1,
+            'amount':100
+        }
+        create_payment_product(**payment_product)
         res = self.client.post(REVIEW_LIST, review)
         res = self.client.post(REVIEW_LIST, review)
         self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
@@ -261,9 +296,16 @@ class PrivateRviewAPITests(TestCase):
             "transaction_id":"transaction",
             "amount":123,
             "user":self.user,
-            "product":product
+            "date_time":datetime.now()
         }
-        create_payment(**payment)
+        payment = create_payment(**payment)
+        payment_product = {
+            'payment_id':payment,
+            'product':product,
+            'quantity':1,
+            'amount':100
+        }
+        create_payment_product(**payment_product)
         res = self.client.post(REVIEW_LIST,review)
         self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
         self.assertIn("error",res.json())

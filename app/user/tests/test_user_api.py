@@ -29,10 +29,9 @@ class PublicUserApiTests(TestCase):
             "last_name" : "abc",
             "phone" : "1234",
             "email" : "user@example.com",
-            "password" : "test123"
+            "password" : "Test123@@@"
         }
         res = self.client.post(CREATE_USER_URL,payload)
-
         self.assertEqual(res.status_code,status.HTTP_201_CREATED)
 
         user = get_user_model().objects.get(email=payload["email"])
@@ -79,7 +78,9 @@ class PublicUserApiTests(TestCase):
             "password" : "test123"
         }
 
-        create_user(**payload)
+        user = create_user(**payload)
+        user.is_active = True
+        user.save()
 
         creds = {
             "email" : "user@example.com",
@@ -131,6 +132,58 @@ class PublicUserApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_password_contains_email_address(self):
+        """Throw error if the email and password is same."""
+        payload = {
+            "first_name" : "xyz",
+            "last_name" : "abc",
+            "phone" : "1234",
+            "email" : "user@example.com",
+            "password" : "user@example.com"
+        }
+        res = self.client.post(CREATE_USER_URL,payload)
+        self.assertIn("password",res.json().keys())
+        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+
+    def test_password_all_lower_case(self):
+        """Throw error if the password is all small case."""
+        payload = {
+            "first_name" : "xyz",
+            "last_name" : "abc",
+            "phone" : "1234",
+            "email" : "user@example.com",
+            "password" : "userexamplecom"
+        }
+        res = self.client.post(CREATE_USER_URL,payload)
+        self.assertIn("password",res.json().keys())
+        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+
+    def test_password_no_special_symbol(self):
+        """Throw error if the password is all small case."""
+        payload = {
+            "first_name" : "xyz",
+            "last_name" : "abc",
+            "phone" : "1234",
+            "email" : "user@example.com",
+            "password" : "Userexamplecom"
+        }
+        res = self.client.post(CREATE_USER_URL,payload)
+        self.assertIn("password",res.json().keys())
+        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+
+    def test_password_less_than_seven_chars(self):
+        """Throw error if the password is all small case."""
+        payload = {
+            "first_name" : "xyz",
+            "last_name" : "abc",
+            "phone" : "1234",
+            "email" : "user@example.com",
+            "password" : "U!23xy"
+        }
+        res = self.client.post(CREATE_USER_URL,payload)
+        self.assertIn("password",res.json().keys())
+        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+
 
 class PrivateUserApiTests(TestCase):
     """Test API requests that require authenticaation."""
@@ -145,12 +198,22 @@ class PrivateUserApiTests(TestCase):
     
     def setUp(self):
         self.user = create_user(**self.payload)
+        self.user.is_active = True
+        self.user.save()
         self.client = APIClient()
-        self.client.force_authenticate(user=self.user)
+        user = {
+            "email":self.user.email,
+            "password":self.payload["password"]
+        }
+        self.res = self.client.post(TOKEN_URL,user)
 
     def test_retrieve_profile_success(self):
         """Test retrieving profile for logged in user."""
-        res = self.client.get(PROFILE_URL)
+        header = {
+            "Authorization":"Bearer "+self.res.json()["access"]
+        }
+
+        res = self.client.get(PROFILE_URL,headers=header)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = {'first_name' : res.json()['first_name'],
@@ -169,10 +232,33 @@ class PrivateUserApiTests(TestCase):
     def test_update_user_profile(self):
         """Test updating the user profile for the authentication."""
         payload = {'first_name':'updated name', 'password':'newpassword123'}
-
-        res = self.client.patch(PROFILE_URL, payload)
+        header = {
+            "Authorization":"Bearer "+self.res.json()["access"]
+        }
+        res = self.client.patch(PROFILE_URL, payload,headers=header)
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.first_name, payload['first_name'])
         self.assertTrue(self.user.check_password(payload['password']))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_login_withut_activation(self):
+        """Throw error if profile is not activated."""
+        payload = {
+            "first_name" : "xyz",
+            "last_name" : "abc",
+            "phone" : "1234",
+            "email" : "user1@example.com",
+            "password" : "test123"
+        }
+
+        create_user(**payload)
+        creds = {
+            "email":payload["email"],
+            "password":payload["password"]
+        }
+        res = self.client.post(TOKEN_URL,creds)
+
+        self.assertEqual(res.status_code,status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("detail",res.json().keys())
+

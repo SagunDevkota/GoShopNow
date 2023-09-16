@@ -11,6 +11,7 @@ from drf_spectacular.utils import extend_schema
 from review import serializers
 from core.pagination import CustomPagination
 from core.models import Review,Payment,Product,PaymentProduct
+from core.services.review_analyzer import analyze
 
 class ReviewViewSet(viewsets.GenericViewSet,
                     mixins.ListModelMixin,
@@ -35,7 +36,6 @@ class ReviewViewSet(viewsets.GenericViewSet,
     
     def perform_create(self, serializer):
         data = serializer.validated_data
-        # purchase = Payment.objects.filter(product=data["p_id"],user=self.request.user,status="Completed")
         purchase = Payment.objects.filter(user=self.request.user,status="Completed")
         purchased_product = PaymentProduct.objects.filter(payment_id__in=purchase,product=data["p_id"])
         if(len(purchased_product)<1):
@@ -43,7 +43,8 @@ class ReviewViewSet(viewsets.GenericViewSet,
         reviews = Review.objects.filter(p_id=data["p_id"],user=self.request.user)
         if(len(reviews)>0):
             raise ValidationError({"error":["Your review is already registered."]})
-        
+        if(analyze(data["review"]) == 1):
+            raise ValidationError({"error":["Your content is recognised as harmful"]})
         serializer.save(user=self.request.user)
         product = Product.objects.get(p_id=data["p_id"].p_id)
         product.rating = Review.objects.aggregate(avg_rating=Avg('rating'))['avg_rating']

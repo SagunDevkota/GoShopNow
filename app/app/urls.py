@@ -33,7 +33,8 @@ urlpatterns = [
     path('api/cart/',include("cart.urls")),
     path('api/review/',include("review.urls")),
     path('api/game/',include("game.urls")),
-    path('api/address/',include("address.urls"))
+    path('api/address/',include("address.urls")),
+    path('api/discount/',include("discount.urls"))
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

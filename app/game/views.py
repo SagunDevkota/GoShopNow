@@ -9,9 +9,10 @@ from drf_spectacular.openapi import OpenApiParameter
 
 from django.http import HttpResponse
 
-from core.models import User
+from core.models import DiscountCoupon
 from game.slot_machine import SlotMachine
 
+import uuid
 
 class SlotMachineViewSet(APIView):
     """API view for SlotMachine."""
@@ -45,6 +46,11 @@ class SlotMachineViewSet(APIView):
             response = self.slot_machine.play_game(request.user.reward_points)
             request.user.reward_points = response["new_reward_point"]
             request.user.save()
+            if(response["rewards_won"] > 0):
+                DiscountCoupon.objects.create(user=self.request.user,
+                                                    coupon_code=str(uuid.uuid4())[:6],
+                                                    max_amount=response["rewards_won"],
+                                                    max_percentage=self.slot_machine.get_bet()/5)
             return HttpResponse([{"response":response}])
         else:
             return HttpResponse([{"Error":"Insufficient Reward Points"}],status=status.HTTP_400_BAD_REQUEST)

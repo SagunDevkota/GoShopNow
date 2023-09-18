@@ -10,7 +10,8 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 class CreatePaymentSerializer(serializers.ModelSerializer):
     """Serializer for initiating payment."""
+    coupon_code = serializers.CharField()
     class Meta:
         model = Payment
-        fields = ["date_time"]
+        fields = ["date_time","coupon_code"]
         read_only_fields = ["date_time"]

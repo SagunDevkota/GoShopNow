@@ -14,7 +14,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from payment import serializers,exceptions
 from core.tasks import send_email
 
-from core.models import Payment,Product,Cart,PaymentProduct,User
+from core.models import Payment,Product,Cart,PaymentProduct,User,DiscountCoupon
 from core.pagination import CustomPagination
 from core.services.mail_sender import send_email
 from core.services.pdf_generator import generate
@@ -87,6 +87,20 @@ class PaymentViewSet(viewsets.GenericViewSet,
             total_quantity += item['quantity']
 
         purchase_id = generate_unique_id()
+        coupon = None
+        discount_amount = 0
+        if(request.data["coupon_code"]):
+                coupon = DiscountCoupon.objects.filter(user=self.request.user,coupon_code=request.data["coupon_code"],used=False).first()
+                if(coupon):
+                    coupon.used = True
+                    amount = total_amount
+                    if(amount*coupon.max_percentage/100 > coupon.max_amount):
+                        total_amount -= coupon.max_amount
+                        discount_amount = coupon.max_amount
+                    else:
+                        total_amount -= amount*coupon.max_percentage/100
+                        discount_amount = amount*coupon.max_percentage/100
+                    coupon.save()
         payload = {
             "purchase_order_id":purchase_id,
             "purchase_order_name":purchase_id,
@@ -104,8 +118,8 @@ class PaymentViewSet(viewsets.GenericViewSet,
         except:
             raise exceptions.ServiceUnavailable()
         if response.status_code == 200:
-            payment = Payment.objects.create(user=self.request.user, id=response_data["pidx"],amount=total_amount,quantity=total_quantity)
-            payment.save()
+            payment = Payment.objects.create(user=self.request.user, id=response_data["pidx"],amount=total_amount,quantity=total_quantity,coupon=coupon,discount_amount=discount_amount)
+            
             for product_detail in product_details:
                 product = Product.objects.get(p_id=product_detail['id'])
                 payment_product = PaymentProduct.objects.create(payment_id=payment,

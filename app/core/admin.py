@@ -179,6 +179,11 @@ class CartAdmin(admin.ModelAdmin):
     list_display = ['id','p_id','quantity','user']
     search_fields = ['user__first_name','user__email']
 
+class DiscountCouponAdmin(admin.ModelAdmin):
+    """Define discount coupon page for product purchase."""
+    list_display = ['user','coupon_code']
+    search_fields = ['user__first_name','user__email']
+
 class PaymentAdmin(AdminChartMixin,admin.ModelAdmin):
     """Define admin panel for payment."""
     list_display = ['id',"quantity","status","user",'date_time']
@@ -325,3 +330,4 @@ admin.site.register(models.ProductImage,ProductImageAdmin)
 admin.site.register(models.PaymentProduct,PaymentProductsAdmin)
 admin.site.register(models.DeliveryAddress,DeliveryAddressAdmin)
 admin.site.register(models.Address,AddressAdmin)
+admin.site.register(models.DiscountCoupon,DiscountCouponAdmin)

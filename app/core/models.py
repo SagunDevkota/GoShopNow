@@ -106,6 +106,15 @@ class Cart(models.Model):
         related_name='user_cart'
     )
 
+
+class DiscountCoupon(models.Model):
+    """Discount coupon for a user."""
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    coupon_code = models.CharField(max_length=6,unique=True)
+    max_amount = models.FloatField()
+    max_percentage = models.IntegerField()
+    used = models.BooleanField(default=False)
+
 class Payment(models.Model):
     TYPE_STATUS = [
         ("Completed", "Completed"),
@@ -123,6 +132,8 @@ class Payment(models.Model):
         related_name="user_payment"
     )
     date_time = models.DateTimeField(auto_now_add=True)
+    coupon = models.ForeignKey(DiscountCoupon,on_delete=models.DO_NOTHING,null=True,default=None)
+    discount_amount = models.FloatField(null=True,default=0)
 
 class Address(models.Model):
     """Available addresses."""

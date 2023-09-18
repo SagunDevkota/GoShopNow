@@ -1,10 +1,7 @@
 """View for product model"""
-
-from rest_framework import viewsets
-from rest_framework import mixins
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.openapi import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
@@ -12,7 +9,7 @@ from django_elasticsearch_dsl_drf.filter_backends import CompoundSearchFilterBac
 
 from product import serializers
 from core.pagination import CustomPagination
-from core.models import Product,Review
+from core.models import Product
 from core.documents import ProductDocument
     
 class ProductViewSet(
@@ -39,9 +36,35 @@ class ProductViewSet(
             OpenApiParameter(name='search',location=OpenApiParameter.QUERY, description='Search Query', required=False, type=str),
         ],
     )
+    
+    def get_queryset(self):
+        query_set = super().get_queryset()
+        price_ordering = self.request.query_params.get("price", "0")
+        rating_ordering = self.request.query_params.get("rating", "0")
+        order_price = None
+        order_rating = None
+        price_ordering = int(price_ordering)
+        rating_ordering = int(rating_ordering)
+
+        if price_ordering == 1:
+            order_price = 'price'
+        elif price_ordering == -1:
+            order_price = '-price'
+        
+        if rating_ordering == 1:
+            order_rating = 'rating'
+        elif rating_ordering == -1:
+            order_rating = '-rating'
+        order_fields = [field for field in [order_price, order_rating] if field is not None]
+        if order_fields:
+            query_set = query_set.sort(*order_fields)
+        return query_set
+    
+    @method_decorator(cache_page(60))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
+    @method_decorator(cache_page(60))
     def retrieve(self, request, *args, **kwargs):
         instance = self.queryset.get(p_id=kwargs['pk'])
         serializer = self.get_serializer_class()

@@ -210,6 +210,17 @@ CELERY_broker_url = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
 result_backend = os.environ.get("CELERY_BACKEND", "redis://redis:6379/0")
 CELERY_broker_connection_retry_on_startup = True
 
+# Redis Cache Config
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
 # Elastic Search Config
 ELASTICSEARCH_DSL = {
     "default": {

@@ -8,6 +8,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin
 )
+from django import forms
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -122,6 +123,22 @@ class Payment(models.Model):
         related_name="user_payment"
     )
     date_time = models.DateTimeField(auto_now_add=True)
+
+class Address(models.Model):
+    """Available addresses."""
+    id = models.CharField(max_length=10,unique=True,primary_key=True)
+    name = models.CharField(max_length=100)
+    parent = models.ForeignKey('self',on_delete=models.CASCADE,blank=True,null=True)
+
+    def __str__(self):
+        return self.name
+
+class DeliveryAddress(models.Model):
+    """User's address"""
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    provience = models.ForeignKey(Address,on_delete=models.CASCADE,related_name='provience_address')
+    city = models.ForeignKey(Address,on_delete=models.CASCADE,related_name='city_address')
+    area = models.ForeignKey(Address,on_delete=models.CASCADE,related_name='area_address')
 
 class PaymentProduct(models.Model):
     """Products in each payment."""

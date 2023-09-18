@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'user',
     'product',
     'payment',
+    'address'
 ]
 
 MIDDLEWARE = [
@@ -192,6 +193,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost",
     'https://goshopnow.onrender.com',
     "http://127.0.0.1:5500",
+    "http://localhost:3000"
 ]
 
 # Mail Sender Config

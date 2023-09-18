@@ -305,6 +305,16 @@ class ProductImageAdmin(admin.ModelAdmin):
     list_display = ['p_id','image_url']
     list_per_page = 50
 
+class DeliveryAddressAdmin(admin.ModelAdmin):
+    """Admin panel for uploading product images"""
+    list_display = ['user']
+    list_per_page = 50
+
+class AddressAdmin(admin.ModelAdmin):
+    """Admin panel for uploading product images"""
+    list_display = ['id','name','parent']
+    list_per_page = 50
+
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.Review, ReviewAdmin)
@@ -313,3 +323,5 @@ admin.site.register(models.Cart, CartAdmin)
 admin.site.register(models.Payment, PaymentAdmin)
 admin.site.register(models.ProductImage,ProductImageAdmin)
 admin.site.register(models.PaymentProduct,PaymentProductsAdmin)
+admin.site.register(models.DeliveryAddress,DeliveryAddressAdmin)
+admin.site.register(models.Address,AddressAdmin)

@@ -7,10 +7,9 @@ from datetime import datetime
 from django.conf import settings
 import os
 
-def generate(filename:str,data:list):
+def generate(filename:str,data:list,transaction_id):
     # try:
-    path = os.path.join(settings.BASE_DIR,'static','invoices',filename)
-    print(path)
+    path = os.path.join(settings.INVOICES_PATH,filename)
     doc = SimpleDocTemplate(path, pagesize=letter)
 
     elements = []
@@ -49,7 +48,7 @@ def generate(filename:str,data:list):
 
     data_total = [
         ["", "", "", "Total"],
-        ["", "", "", f"Total: ${sum([int(row[-1]) for row in data[1:]])}"],
+        ["", "", "", f"Total: ${sum([float(row[-1]) for row in data[1:]])}"],
     ]
     table_total = Table(data_total, colWidths=[200, 80, 80, 80])
     table_total.setStyle(TableStyle([
@@ -79,7 +78,16 @@ def generate(filename:str,data:list):
     centered = Paragraph('Payment Invoice', custom_style)
     elements.append(centered)
 
-    elements.append(Spacer(1, 0.25 * inch))
+    custom_style = ParagraphStyle(
+        name='CustomTitle',
+        fontSize=12,
+        alignment=0,
+    )
+    elements.append(Spacer(1, 0.15 * inch))
+    centered = Paragraph("Transaction ID: "+ transaction_id, custom_style)
+    elements.append(centered)
+
+    elements.append(Spacer(1, 0.15 * inch))
 
     elements.append(table)
     elements.append(table_total)

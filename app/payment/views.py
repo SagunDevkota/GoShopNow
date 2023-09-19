@@ -11,19 +11,23 @@ from drf_spectacular.utils import extend_schema
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from payment import serializers,exceptions
+from django.conf import settings
+from django.urls import reverse
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.conf import settings
+
 from core.tasks import send_email
 
 from core.models import Payment,Product,Cart,PaymentProduct,User,DiscountCoupon
 from core.pagination import CustomPagination
 from core.services.mail_sender import send_email
 from core.services.pdf_generator import generate
+from payment import serializers,exceptions
 
-import requests
-
-from django.conf import settings
-from django.urls import reverse
 import uuid
+import os
+import requests
 
 def generate_unique_id():
     return str(uuid.uuid4())
@@ -32,6 +36,8 @@ class IsAuthenticatedOrReadOnly(BasePermission):
     def has_permission(self, request, view):        
         if view.action == 'validate':
             return True  # Allow all GET requests without authentication
+        if view.action == "download":
+            return True
         return request.user and request.user.is_authenticated  # Require authentication for other methods
 
 class PaymentViewSet(viewsets.GenericViewSet,
@@ -182,8 +188,8 @@ class PaymentViewSet(viewsets.GenericViewSet,
                         product.save()
 
                         payment_detail_list.append([product.name,product.price,payment_product.quantity,payment_product.amount])
-
-                    generate(response_data['pidx']+'.pdf',payment_detail_list)
+                    payment_detail_list.append(['Discount',None,None,payment.discount_amount*-1])
+                    generate(response_data['pidx']+'.pdf',payment_detail_list,response_data['transaction_id'])
                     Cart.objects.filter(user=payment.user).delete()
                     user = User.objects.get(id=payment.user.id)
                     user.reward_points += payment.amount/100
@@ -195,3 +201,25 @@ class PaymentViewSet(viewsets.GenericViewSet,
             return Response(serializer.data)
         
         return Response({'error':'payment not found'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @extend_schema(
+    parameters=[
+        OpenApiParameter(name='id',location=OpenApiParameter.QUERY, description='Payment ID', required=False, type=str),
+        ]
+    )
+    def download(self,request,*args,**kwargs):
+        payment = get_object_or_404(Payment,id=request.query_params["id"],status="Completed")
+        if(payment):
+            file_name = payment.id+".pdf"
+            file_path = os.path.join(settings.INVOICES_PATH,file_name)
+            if(os.path.exists(file_path)):
+                try:
+                    with open(file_path, 'rb') as file:
+                        response = HttpResponse(file, content_type='pdf')
+                        response['Content-Disposition'] = f'attachment; filename={file_name}'
+                        return response
+                except FileNotFoundError:
+                    return HttpResponse("Error reading file.")
+            else:
+                return HttpResponse([{"error":"File not found"}])

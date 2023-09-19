@@ -17,4 +17,5 @@ app_name = 'payment' #name for reverse url
 urlpatterns = [
     path('',include(router.urls)),
     path('validate/', views.PaymentViewSet.as_view({'get': 'validate'}), name='validate'),
+    path('download/',views.PaymentViewSet.as_view({'get':'download'}), name='download')
 ]

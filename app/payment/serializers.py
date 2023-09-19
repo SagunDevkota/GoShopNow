@@ -5,8 +5,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     """Serializer for payment model."""
     class Meta:
         model = Payment
-        fields = ["id","quantity","status","transaction_id","date_time","user","amount"]
-        read_only_fields = ["user"]
+        fields = ["id","quantity","status","transaction_id","date_time","amount"]
 
 class CreatePaymentSerializer(serializers.ModelSerializer):
     """Serializer for initiating payment."""

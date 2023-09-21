@@ -180,6 +180,36 @@ class PrivateRviewAPITests(TestCase):
         res = self.client.post(REVIEW_LIST, review)
         self.assertEqual(res.status_code,status.HTTP_201_CREATED)
 
+    def test_create_harmful_review_failed(self):
+        """Test creating review for a valid product with inappropriate review."""
+        
+        review = {
+            "p_id": self.product.p_id,  # Use "p_id" as the key
+            "review": "I want to kill you.",
+            "rating": 5,
+        }
+        payment = {
+            "id":"123",
+            "quantity":"1",
+            "status":"Completed",
+            "transaction_id":"transaction",
+            "amount":123,
+            "user":self.user,
+            "date_time":datetime.now()
+        }
+        payment = create_payment(**payment)
+
+        payment_product = {
+            'payment_id':payment,
+            'product':self.product,
+            'quantity':1,
+            'amount':100
+        }
+        create_payment_product(**payment_product)
+        res = self.client.post(REVIEW_LIST, review)
+        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertEqual("Your content is recognised as harmful",res.json()["error"][0])
+
     def test_create_review_invalid_product(self):
         """Throw error if product doesnot exists."""
         review = {

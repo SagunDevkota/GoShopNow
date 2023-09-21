@@ -14,7 +14,6 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.tasks import send_email
-import uuid
 
 class PasswordValidator:
     def __init__(self, min_length=8):
@@ -91,17 +90,6 @@ class UserDetailsSerializer(serializers.ModelSerializer):
                         {'write_only':True,'min_length':5}
                         }
     
-    def validate(self, attrs):
-        email = attrs.get('email', None)
-        password = attrs.get('password', None)
-
-        if email and password:
-            password_validator = PasswordValidator()
-            password = password_validator.validate(password, email)
-
-        attrs['password'] = password
-        return attrs
-
 class AuthTokenSerializer(serializers.Serializer):
     """Serializer for the user auth token"""
     email = serializers.EmailField()

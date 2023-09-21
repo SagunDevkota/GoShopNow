@@ -50,10 +50,7 @@ class ActivateAccountView(generics.RetrieveAPIView):
     serializer_class = UserActivationSerialider
 
     def get(self, request, *args, **kwargs):
-        if('token' in kwargs.keys()):
-            user = get_object_or_404(get_user_model().objects.filter(token=kwargs["token"]))
-            user.is_active = True
-            user.save()
-            return Response({'message': 'Account activated'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error':'Token Required'},status=status.HTTP_400_BAD_REQUEST)
+        user = get_object_or_404(get_user_model().objects.filter(token=kwargs["token"]))
+        user.is_active = True
+        user.save()
+        return Response({'message': 'Account activated'}, status=status.HTTP_200_OK)

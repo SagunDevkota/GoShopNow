@@ -7,10 +7,13 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from rest_framework.test import APIClient
-from rest_framework import status
+from rest_framework import status,serializers
+
+
 
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token_obtain_pair')
+TOKEN_REFRESH = reverse('user:token_refresh')
 PROFILE_URL = reverse('user:profile')
 
 def create_user(**params):
@@ -132,58 +135,53 @@ class PublicUserApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_password_contains_email_address(self):
-        """Throw error if the email and password is same."""
+    def test_incorrect_token_in_account_activation(self):
+        """Return error if activation token provided is incorrect."""
         payload = {
             "first_name" : "xyz",
             "last_name" : "abc",
             "phone" : "1234",
-            "email" : "user@example.com",
-            "password" : "user@example.com"
+            "email" : "user2@example.com",
+            "password" : "test123"
         }
-        res = self.client.post(CREATE_USER_URL,payload)
-        self.assertIn("password",res.json().keys())
-        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+        user = create_user(**payload)
+        activation_url = reverse('user:activate-account',args=["xyz"])
+        res = self.client.get(activation_url)
+        self.assertEqual(res.status_code,status.HTTP_404_NOT_FOUND)
+        self.assertIn("detail",res.json().keys())
 
-    def test_password_all_lower_case(self):
-        """Throw error if the password is all small case."""
+    def test_correct_token_in_account_activation(self):
+        """Return error if activation token provided is incorrect."""
         payload = {
             "first_name" : "xyz",
             "last_name" : "abc",
             "phone" : "1234",
-            "email" : "user@example.com",
-            "password" : "userexamplecom"
+            "email" : "user2@example.com",
+            "password" : "test123"
         }
-        res = self.client.post(CREATE_USER_URL,payload)
-        self.assertIn("password",res.json().keys())
-        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+        user = create_user(**payload)
+        activation_url = reverse('user:activate-account',args=[user.token])
+        res = self.client.get(activation_url)
+        self.assertEqual(res.status_code,status.HTTP_200_OK)
+        self.assertIn("message",res.json().keys())
 
-    def test_password_no_special_symbol(self):
-        """Throw error if the password is all small case."""
+    def test_get_refresh_token_success(self):
+        """Test generate referesh token"""
         payload = {
             "first_name" : "xyz",
             "last_name" : "abc",
             "phone" : "1234",
-            "email" : "user@example.com",
-            "password" : "Userexamplecom"
+            "email" : "user1@example.com",
+            "password" : "test123"
         }
-        res = self.client.post(CREATE_USER_URL,payload)
-        self.assertIn("password",res.json().keys())
-        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
 
-    def test_password_less_than_seven_chars(self):
-        """Throw error if the password is all small case."""
-        payload = {
-            "first_name" : "xyz",
-            "last_name" : "abc",
-            "phone" : "1234",
-            "email" : "user@example.com",
-            "password" : "U!23xy"
-        }
-        res = self.client.post(CREATE_USER_URL,payload)
-        self.assertIn("password",res.json().keys())
-        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+        user = create_user(**payload)
+        user.is_active = True
+        user.save()
 
+        res = self.client.post(TOKEN_URL,data={"email":payload["email"],"password":payload["password"]})
+        res2 = self.client.post(TOKEN_REFRESH,data={"refresh":res.json()["refresh"]})
+        self.assertIn("access",res2.json().keys())
 
 class PrivateUserApiTests(TestCase):
     """Test API requests that require authenticaation."""
@@ -242,7 +240,7 @@ class PrivateUserApiTests(TestCase):
         self.assertTrue(self.user.check_password(payload['password']))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-    def test_login_withut_activation(self):
+    def test_login_without_activation(self):
         """Throw error if profile is not activated."""
         payload = {
             "first_name" : "xyz",
@@ -261,4 +259,3 @@ class PrivateUserApiTests(TestCase):
 
         self.assertEqual(res.status_code,status.HTTP_401_UNAUTHORIZED)
         self.assertIn("detail",res.json().keys())
-

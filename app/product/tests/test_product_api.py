@@ -146,9 +146,10 @@ class PublicUserApiTests(TestCase):
             "password" : "test123"
         }
         product = create_product(**product)
-        product = Product.objects.get(p_id=1)
+        product = Product.objects.get(p_id=10)
         review = Review(p_id=product,review="Good",rating=5,user=create_user(**user))
         review.save()
+        PRODUCT_DETAIL_URL = reverse('product:product-detail', args=[product.p_id])
         res = self.client.get(PRODUCT_DETAIL_URL)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertIn('name',res.data.keys())

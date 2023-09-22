@@ -66,16 +66,7 @@ class PaymentViewSet(viewsets.GenericViewSet,
         data = serializer.data
         product_details = []
         total_amount = 0
-        if("product" in data.keys() and "quantity" in data.keys()):
-            item = {}
-            item["p_id_id"] = data["product"].p_id
-            item["quantity"] = data["quantity"]
-            items = [item]
-        elif("product" in data.keys() or "quantity" in data.keys()):
-            raise ValidationError({"error":["Invalid Request"]})
-        else:
-            items = list(Cart.objects.filter(user=self.request.user).values())
-
+        items = list(Cart.objects.filter(user=self.request.user).values())
         product_details = []
         total_quantity = 0
         total_amount = 0
@@ -95,8 +86,8 @@ class PaymentViewSet(viewsets.GenericViewSet,
         purchase_id = generate_unique_id()
         coupon = None
         discount_amount = 0
-        if(request.data["coupon_code"]):
-                coupon = DiscountCoupon.objects.filter(user=self.request.user,coupon_code=request.data["coupon_code"],used=False).first()
+        if("coupon_code" in data.keys()):
+                coupon = DiscountCoupon.objects.filter(user=self.request.user,coupon_code=data["coupon_code"],used=False).first()
                 if(coupon):
                     coupon.used = True
                     amount = total_amount
@@ -136,7 +127,7 @@ class PaymentViewSet(viewsets.GenericViewSet,
 
             response_data["message"] = "Success"
             return Response(data=response_data, status=status.HTTP_201_CREATED)
-        elif response.status_code == 400:
+        else:
             raise ValidationError(response_data)
         
     @extend_schema(
@@ -164,43 +155,42 @@ class PaymentViewSet(viewsets.GenericViewSet,
             try:
                 payment = Payment.objects.get(id=pidx)
             except Payment.DoesNotExist:
-                # Handle the case when the Payment object does not exist
-                # For example, return an error response or perform some other action
-                return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Payment not found"}, status=status.HTTP_400_BAD_REQUEST)
             if(payment.transaction_id == None and payment.amount != None):
                 try:
                     response = requests.post(url=settings.PAYMENT_LOOKUP_URL, data=payload, headers=headers)
-                    response_data = response.json()
                 except Exception as e:
                     raise exceptions.ServiceUnavailable()
-                
-                if(response_data['status'] == "Completed"):
-                    payment.status = response_data['status']
-                    payment.transaction_id = response_data['transaction_id']
-                    payment.amount = float(amount)/100
-                    payment_products = PaymentProduct.objects.filter(payment_id = response_data['pidx'])
-                    payment_detail_list = [['Product Name','Unit Price','Units','Subtotal']]
-                    for payment_product in payment_products:
-                        product = Product.objects.get(p_id=payment_product.product.p_id)
-                        product.stock -= payment_product.quantity
-                        if(product.stock < product.threshold):
-                            send_email.delay("Threshold Reached",f"The product {product.name} with id: {product.p_id} is going out of stock.",[settings.EMAIL_HOST_USER],'')
-                        product.save()
+                if(response.status_code == status.HTTP_200_OK):
+                    response_data = response.json()
+                    if(response_data["status"] == "Completed"):
+                        payment.status = response_data['status']
+                        payment.transaction_id = response_data['transaction_id']
+                        payment.amount = float(amount)/100
+                        payment_products = PaymentProduct.objects.filter(payment_id = response_data['pidx'])
+                        payment_detail_list = [['Product Name','Unit Price','Units','Subtotal']]
+                        for payment_product in payment_products:
+                            product = Product.objects.get(p_id=payment_product.product.p_id)
+                            product.stock -= payment_product.quantity
+                            if(product.stock < product.threshold):
+                                send_email.delay("Threshold Reached",f"The product {product.name} with id: {product.p_id} is going out of stock.",[settings.EMAIL_HOST_USER],'')
+                            product.save()
 
-                        payment_detail_list.append([product.name,product.price,payment_product.quantity,payment_product.amount])
-                    payment_detail_list.append(['Discount',None,None,payment.discount_amount*-1])
-                    generate(response_data['pidx']+'.pdf',payment_detail_list,response_data['transaction_id'])
-                    Cart.objects.filter(user=payment.user).delete()
-                    user = User.objects.get(id=payment.user.id)
-                    user.reward_points += payment.amount/100
-                    user.save()
-                    payment.save()
+                            payment_detail_list.append([product.name,product.price,payment_product.quantity,payment_product.amount])
+                        payment_detail_list.append(['Discount',None,None,payment.discount_amount*-1])
+                        generate(response_data['pidx']+'.pdf',payment_detail_list,response_data['transaction_id'])
+                        Cart.objects.filter(user=payment.user).delete()
+                        user = User.objects.get(id=payment.user.id)
+                        user.reward_points += payment.amount/100
+                        user.save()
+                        payment.save()
+                    else:
+                        return Response({"error":"Payment Not Completed"},status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    print("NC")
+                    return Response({"error":"Bad Request"},status=status.HTTP_400_BAD_REQUEST)
             serializer = self.get_serializer(payment)
             return Response(serializer.data)
-        
-        return Response({'error':'payment not found'},status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error':'Invalid Request'},status=status.HTTP_400_BAD_REQUEST)
 
 
     @extend_schema(
@@ -209,17 +199,14 @@ class PaymentViewSet(viewsets.GenericViewSet,
         ]
     )
     def download(self,request,*args,**kwargs):
-        payment = get_object_or_404(Payment,id=request.query_params["id"],status="Completed")
-        if(payment):
-            file_name = payment.id+".pdf"
-            file_path = os.path.join(settings.INVOICES_PATH,file_name)
-            if(os.path.exists(file_path)):
-                try:
-                    with open(file_path, 'rb') as file:
-                        response = HttpResponse(file, content_type='pdf')
-                        response['Content-Disposition'] = f'attachment; filename={file_name}'
-                        return response
-                except FileNotFoundError:
-                    return HttpResponse("Error reading file.")
-            else:
-                return HttpResponse([{"error":"File not found"}])
+        payment = get_object_or_404(Payment,id=request.query_params["id"],status="Completed",user=self.request.user)
+        file_name = payment.id+".pdf"
+        file_path = os.path.join(settings.INVOICES_PATH,file_name)
+        if(os.path.exists(file_path)):
+            try:
+                with open(file_path, 'rb') as file:
+                    response = HttpResponse(file, content_type='pdf')
+                    response['Content-Disposition'] = f'attachment; filename={file_name}'
+                    return response
+            except:
+                return Response({"error":"Error reading file."},status=status.HTTP_500_INTERNAL_SERVER_ERROR)

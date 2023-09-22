@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiParameter
@@ -41,7 +42,9 @@ class SlotMachineViewSet(APIView):
             if(request.query_params.get("bet") in ['10','50','100']):
                 self.slot_machine.set_bet(int(request.query_params["bet"]))
             else:
-                return HttpResponse([{"Error":"Invalid Bet"}],status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error":"Invalid Bet"},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error":"Bet not found"},status=status.HTTP_428_PRECONDITION_REQUIRED)
         if(request.user.reward_points >= self.slot_machine.get_bet()):
             response = self.slot_machine.play_game(request.user.reward_points)
             request.user.reward_points = response["new_reward_point"]
@@ -51,6 +54,6 @@ class SlotMachineViewSet(APIView):
                                                     coupon_code=str(uuid.uuid4())[:6],
                                                     max_amount=response["rewards_won"],
                                                     max_percentage=self.slot_machine.get_bet()/5)
-            return HttpResponse([{"response":response}])
+            return Response({"response":response})
         else:
-            return HttpResponse([{"Error":"Insufficient Reward Points"}],status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error":"Insufficient Reward Points"},status=status.HTTP_400_BAD_REQUEST)

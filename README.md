@@ -26,7 +26,7 @@ To get started with the GoShopNow backend, follow these steps:
 1. Clone this repository to your local machine:
 
    ```bash
-   git clone https://github.com/yourusername/goshopnow-backend.git
+   git clone https://github.com/SagunDevkota/GoShopNow.git
    cd goshopnow-backend
    ```
 

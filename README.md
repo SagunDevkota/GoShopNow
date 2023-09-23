@@ -31,6 +31,7 @@ To get started with the GoShopNow backend, follow these steps:
    ```
 
 2. Create a .env file and configure the environment variables as needed.
+    ```env
     DB_HOST=
     DB_NAME=
     DB_USER=
@@ -45,6 +46,7 @@ To get started with the GoShopNow backend, follow these steps:
 
     CELERY_BROKER = 
     CELERY_BACKEND =
+    ```
 
 3. Build the Docker container:
     ```

@@ -10,7 +10,7 @@ from django.conf import settings
 
 from rest_framework.test import APIClient
 from rest_framework import status
-from core.models import Category,Product,Cart,DiscountCoupon,Payment,PaymentProduct
+from core.models import Category,Product,Cart,DiscountCoupon,Payment,PaymentProduct,Address,DeliveryAddress
 from core.tasks import send_email
 from unittest import mock
 import requests
@@ -48,6 +48,14 @@ def create_payment_product(**params):
     """Create and return a new payment product object."""
     return PaymentProduct.objects.create(**params)
 
+def create_address(**params):
+    """Create and return new address"""
+    return Address.objects.create(**params)
+
+def create_delivery_address(**params):
+    """Create and return a new delivery address"""
+    return DeliveryAddress.objects.create(**params)
+
 class PrivatePaymentApiTests(TestCase):
     """Unit test for payment api."""
 
@@ -65,6 +73,34 @@ class PrivatePaymentApiTests(TestCase):
     
     def test_create_payment_api_unavailable(self):
         """Test create payment when Khalti is down"""
+        address = {
+            "id":"1",
+            "name":"xyz",
+            "parent":None
+        }
+        a1 = create_address(**address)
+        
+        address = {
+            "id":"2",
+            "name":"xyz2",
+            "parent":a1
+        }
+        a2 = create_address(**address)
+
+        address = {
+            "id":"3",
+            "name":"xyz3",
+            "parent":a2
+        }
+        a3 = create_address(**address)
+
+        data = {
+            "user":self.user,
+            "provience":a1,
+            "city":a2,
+            'area':a3
+        }
+        create_delivery_address(**data)
         url = PAYMENT_URL
         data = {} 
 
@@ -79,6 +115,35 @@ class PrivatePaymentApiTests(TestCase):
     @mock.patch('payment.views.generate_unique_id')
     def test_create_payment_api_bad_request(self,mock_generate_id, mock_uuid):
         """Test create payment with invalid data."""
+
+        address = {
+            "id":"1",
+            "name":"xyz",
+            "parent":None
+        }
+        a1 = create_address(**address)
+        
+        address = {
+            "id":"2",
+            "name":"xyz2",
+            "parent":a1
+        }
+        a2 = create_address(**address)
+
+        address = {
+            "id":"3",
+            "name":"xyz3",
+            "parent":a2
+        }
+        a3 = create_address(**address)
+
+        data = {
+            "user":self.user,
+            "provience":a1,
+            "city":a2,
+            'area':a3
+        }
+        create_delivery_address(**data)
         mock_uuid.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         mock_generate_id.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         url = PAYMENT_URL
@@ -134,6 +199,35 @@ class PrivatePaymentApiTests(TestCase):
     @mock.patch('payment.views.generate_unique_id')
     def test_create_payment_api_success(self,mock_generate_id, mock_uuid):
         """Test create payment with empty cart"""
+
+        address = {
+            "id":"1",
+            "name":"xyz",
+            "parent":None
+        }
+        a1 = create_address(**address)
+        
+        address = {
+            "id":"2",
+            "name":"xyz2",
+            "parent":a1
+        }
+        a2 = create_address(**address)
+
+        address = {
+            "id":"3",
+            "name":"xyz3",
+            "parent":a2
+        }
+        a3 = create_address(**address)
+
+        data = {
+            "user":self.user,
+            "provience":a1,
+            "city":a2,
+            'area':a3
+        }
+        create_delivery_address(**data)
         mock_uuid.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         mock_generate_id.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         url = PAYMENT_URL
@@ -223,6 +317,35 @@ class PrivatePaymentApiTests(TestCase):
         }
         create_cart(**cart)
 
+        address = {
+            "id":"1",
+            "name":"xyz",
+            "parent":None
+        }
+        a1 = create_address(**address)
+        
+        address = {
+            "id":"2",
+            "name":"xyz2",
+            "parent":a1
+        }
+        a2 = create_address(**address)
+
+        address = {
+            "id":"3",
+            "name":"xyz3",
+            "parent":a2
+        }
+        a3 = create_address(**address)
+
+        data = {
+            "user":self.user,
+            "provience":a1,
+            "city":a2,
+            'area':a3
+        }
+        create_delivery_address(**data)
+
         mock_uuid.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         mock_generate_id.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         url = PAYMENT_URL
@@ -239,24 +362,24 @@ class PrivatePaymentApiTests(TestCase):
                 "unit_price": 265000,
                 "quantity": 2,
                 "total_price": 530000,
-                "identity": "1",
-                "id": 1
+                "identity": f"{p1.p_id}",
+                "id": p1.p_id
                 },
                 {
                 "name": "Macbook Pro M2 Pro",
                 "unit_price": 275000,
                 "quantity": 2,
                 "total_price": 550000,
-                "identity": "2",
-                "id": 2
+                "identity": f"{p2.p_id}",
+                "id": p2.p_id
                 },
                 {
                 "name": "Macbook Pro M1 MAX",
                 "unit_price": 215000,
                 "quantity": 2,
                 "total_price": 430000,
-                "identity": "3",
-                "id": 3
+                "identity": f"{p3.p_id}",
+                "id": p3.p_id
                 }
             ]
             }
@@ -355,7 +478,34 @@ class PrivatePaymentApiTests(TestCase):
             "user":self.user
         }
         create_cart(**cart)
+        address = {
+            "id":"1",
+            "name":"xyz",
+            "parent":None
+        }
+        a1 = create_address(**address)
+        
+        address = {
+            "id":"2",
+            "name":"xyz2",
+            "parent":a1
+        }
+        a2 = create_address(**address)
 
+        address = {
+            "id":"3",
+            "name":"xyz3",
+            "parent":a2
+        }
+        a3 = create_address(**address)
+
+        data = {
+            "user":self.user,
+            "provience":a1,
+            "city":a2,
+            'area':a3
+        }
+        create_delivery_address(**data)
         mock_uuid.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         mock_generate_id.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         url = PAYMENT_URL
@@ -371,24 +521,24 @@ class PrivatePaymentApiTests(TestCase):
                 "unit_price": 265000,
                 "quantity": 2,
                 "total_price": 530000,
-                "identity": "4",
-                "id": 4
+                "identity": f"{p1.p_id}",
+                "id": p1.p_id
                 },
                 {
                 "name": "Macbook Pro M2 Pro",
                 "unit_price": 275000,
                 "quantity": 2,
                 "total_price": 550000,
-                "identity": "5",
-                "id": 5
+                "identity": f"{p2.p_id}",
+                "id": p2.p_id
                 },
                 {
                 "name": "Macbook Pro M1 MAX",
                 "unit_price": 215000,
                 "quantity": 2,
                 "total_price": 430000,
-                "identity": "6",
-                "id": 6
+                "identity": f"{p3.p_id}",
+                "id": p3.p_id
                 }
             ]
             }
@@ -443,24 +593,24 @@ class PrivatePaymentApiTests(TestCase):
                 "unit_price": 265000,
                 "quantity": 2,
                 "total_price": 530000,
-                "identity": "4",
-                "id": 4
+                "identity": f"{p1.p_id}",
+                "id": p1.p_id
                 },
                 {
                 "name": "Macbook Pro M2 Pro",
                 "unit_price": 275000,
                 "quantity": 2,
                 "total_price": 550000,
-                "identity": "5",
-                "id": 5
+                "identity": f"{p2.p_id}",
+                "id": p2.p_id
                 },
                 {
                 "name": "Macbook Pro M1 MAX",
                 "unit_price": 215000,
                 "quantity": 2,
                 "total_price": 430000,
-                "identity": "6",
-                "id": 6
+                "identity": f"{p3.p_id}",
+                "id": p3.p_id
                 }
             ]
             }

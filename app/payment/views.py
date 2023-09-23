@@ -19,7 +19,7 @@ from django.conf import settings
 
 from core.tasks import send_email
 
-from core.models import Payment,Product,Cart,PaymentProduct,User,DiscountCoupon
+from core.models import Payment,Product,Cart,PaymentProduct,User,DiscountCoupon,DeliveryAddress
 from core.pagination import CustomPagination
 from core.services.mail_sender import send_email
 from core.services.pdf_generator import generate
@@ -67,6 +67,7 @@ class PaymentViewSet(viewsets.GenericViewSet,
         product_details = []
         total_amount = 0
         items = list(Cart.objects.filter(user=self.request.user).values())
+        get_object_or_404(DeliveryAddress,user=self.request.user)
         product_details = []
         total_quantity = 0
         total_amount = 0
@@ -179,6 +180,7 @@ class PaymentViewSet(viewsets.GenericViewSet,
                             payment_detail_list.append([product.name,product.price,payment_product.quantity,payment_product.amount])
                         payment_detail_list.append(['Discount',None,None,payment.discount_amount*-1])
                         generate(response_data['pidx']+'.pdf',payment_detail_list,response_data['transaction_id'])
+                        send_email.delay("Payment Successful",f"Your purchase for txn ID:{response_data['transaction_id']} is successful",[self.request.user.email],response_data['pidx']+'.pdf')
                         Cart.objects.filter(user=payment.user).delete()
                         user = User.objects.get(id=payment.user.id)
                         user.reward_points += payment.amount/100

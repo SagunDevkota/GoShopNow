@@ -1,12 +1,12 @@
 from django.core.mail import EmailMessage
-from django.http import HttpResponse
+from rest_framework.response import Response
+from rest_framework import status
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
 import os
 
 def send_email(subject: str, message: str, to_list: list, pdf_file_path: str):
     from_email = settings.EMAIL_HOST_USER
-    path = os.path.join(settings.BASE_DIR,pdf_file_path)
+    path = os.path.join(settings.INVOICES_PATH,pdf_file_path)
     if subject and message and from_email and to_list:
         try:
             email = EmailMessage(subject, message, from_email, to_list)
@@ -16,10 +16,10 @@ def send_email(subject: str, message: str, to_list: list, pdf_file_path: str):
 
             email.send()
 
-            return HttpResponse("Mail Sent")
+            return True
         except Exception as e:
             print(e)
-            return HttpResponse(f"An error occurred: {str(e)}", status=500)
+            return False
     else:
-        raise PermissionDenied("Make sure all required fields are provided.")
+        return False
     

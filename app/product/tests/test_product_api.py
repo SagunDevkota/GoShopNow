@@ -10,8 +10,10 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from unittest.mock import Mock
+from unittest import mock
 
 from product.serializers import ProductSerializer
+from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
 
 PRODUCT_URL = reverse('product:product-list')
 PRODUCT_DETAIL_URL = reverse('product:product-detail', args=[1])
@@ -34,6 +36,13 @@ class PublicUserApiTests(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+
+    @mock.patch.object(DocumentViewSet, 'list')
+    def test_elasticsearch_connection_error(self, mock_list):
+        mock_list.side_effect = ConnectionError("Elasticsearch connection failed")
+        res = self.client.get(PRODUCT_URL)
+        self.assertEqual(res.status_code,status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertIn("error",res.json().keys())
 
     def test_get_products_success(self):
         """Test get products"""

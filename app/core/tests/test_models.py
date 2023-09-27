@@ -40,7 +40,6 @@ class ModelTests(TestCase):
 
         with self.assertRaises(ValueError):
             user = get_user_model().objects.create_user(email="")
-            user.set_password("sample123")
 
     def test_create_superuser(self):
         """Test creating a super user"""

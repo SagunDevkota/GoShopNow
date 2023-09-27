@@ -2,6 +2,7 @@
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from rest_framework.response import Response
+from rest_framework import status
 from drf_spectacular.openapi import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
@@ -11,6 +12,7 @@ from product import serializers
 from core.pagination import CustomPagination
 from core.models import Product
 from core.documents import ProductDocument
+from elasticsearch import exceptions
     
 class ProductViewSet(
     DocumentViewSet
@@ -61,8 +63,12 @@ class ProductViewSet(
     )
     @method_decorator(cache_page(60))
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        try:
+            return super().list(request, *args, **kwargs)
+        except:
+            return Response({"error":"Elasticsearch connection failed"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+        
     @method_decorator(cache_page(60))
     def retrieve(self, request, *args, **kwargs):
         instance = self.queryset.get(p_id=kwargs['pk'])

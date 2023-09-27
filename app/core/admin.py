@@ -6,6 +6,10 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from django import forms
+from django.db.models import Sum, F, Count
+from django.db.models.functions import TruncMonth,TruncDay
+from django.core import serializers
+from django.http import JsonResponse
 from django.conf import settings
 from ckeditor.widgets import CKEditorWidget
 from admincharts.admin import AdminChartMixin
@@ -193,6 +197,7 @@ class PaymentAdmin(AdminChartMixin,admin.ModelAdmin):
     search_fields = ['id']
     start_date = None
     end_date = None
+    list_per_page = 50
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         field = super().formfield_for_dbfield(db_field, **kwargs)
@@ -215,36 +220,33 @@ class PaymentAdmin(AdminChartMixin,admin.ModelAdmin):
         if 'start_date' in request.GET and 'end_date' in request.GET:
             self.start_date = request.GET['start_date'] 
             self.end_date = request.GET['end_date']
+        elif 'date_time__gte' in request.GET and 'date_time__lt' in request.GET:
+            self.start_date = request.GET['date_time__gte'] 
+            self.end_date = request.GET['date_time__lt']
 
         return super().changelist_view(request, extra_context=extra_context)
 
     def get_list_chart_data(self, queryset):
         if not queryset:
             return {}
-
-        earliest = min([x.date_time for x in queryset])
-        now = max([x.date_time for x in queryset])
-
+        queryset = models.Payment.objects.filter(date_time__range=(self.start_date, self.end_date)).annotate(
+                day=TruncDay('date_time')
+            ).values('day').annotate(
+                total_amount=Sum('amount')
+            ).order_by('day')
+        
         labels = []
         totals = []
         name_of_chart = "Hero products by number of sales."
-        for b in months_between_dates(earliest, now):
-            labels.append(b.strftime("%b %Y"))
-            total_revenue = 0
-            for x in queryset:
-                if(x.date_time.year == b.year and x.date_time.month == b.month):
-                    if(x.status == "Completed"):
-                        if(x.amount):
-                            total_revenue+=x.amount
-            
-            totals.append(total_revenue)
-
+        for b in list(queryset):
+            labels.append(b["day"].strftime("%d %b %Y"))
+            totals.append(b["total_amount"])
         return {
             "labels": labels,
             "datasets": [
                 {"label": "Total Revenue", "data": totals, "backgroundColor": "#79aec8"},
             ],
-            "name_of_chart":"Total Revenue"
+            "name_of_chart":name_of_chart
         }
     
     
@@ -256,6 +258,7 @@ class PaymentProductsAdmin(AdminChartMixin,admin.ModelAdmin):
     readonly_fields = ['product_name',"date"]
     ordering = ['payment_id__date_time']
     search_fields = ['payment_id__id']
+    list_per_page = 50
     start_date = None
     end_date = None
 
@@ -283,20 +286,25 @@ class PaymentProductsAdmin(AdminChartMixin,admin.ModelAdmin):
         if 'start_date' in request.GET and 'end_date' in request.GET:
             self.start_date = request.GET['start_date'] 
             self.end_date = request.GET['end_date']
+        elif 'payment_id__date_time__gte' in request.GET and 'payment_id__date_time__lt' in request.GET:
+            self.start_date = request.GET['payment_id__date_time__gte'] 
+            self.end_date = request.GET['payment_id__date_time__lt']
 
         return super().changelist_view(request, extra_context=extra_context)
 
     def get_list_chart_data(self, queryset):
         if not queryset:
             return {}
-
+        queryset = models.PaymentProduct.objects.filter(
+            payment_id__date_time__range=(self.start_date, self.end_date)
+        ).values('product__name').annotate(
+            record_count=Count('product__name')
+        ).order_by('-record_count') \
+        .values('product__name','record_count')[:20]
         label_total = {}
         name_of_chart = "Hero products by number of sales."
-        for x in queryset:
-            if(x.product.name not in label_total.keys()):
-                label_total[x.product.name] = x.quantity
-            else:
-                label_total[x.product.name] += x.quantity
+        for x in list(queryset):
+            label_total[x["product__name"]] = x["record_count"]
         return {
             "labels": list(label_total.keys()),
             "datasets": [

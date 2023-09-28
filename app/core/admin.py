@@ -43,7 +43,6 @@ class UserAdmin(BaseUserAdmin):
                 'email',
                 'password',
                 'reward_points',
-                'token'
                 )}),
         (
             _('Permissions'),
@@ -71,7 +70,6 @@ class UserAdmin(BaseUserAdmin):
                 'is_active',
                 'is_staff',
                 'is_superuser',
-                'token'
             )
         }),
     )

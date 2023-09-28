@@ -4,6 +4,7 @@ Views for the user API
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
 
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -42,15 +43,25 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
         else:
             return UserDetailsSerializer
         
-class ActivateAccountView(generics.RetrieveAPIView):
+class ActivateAccountView(generics.CreateAPIView):
     """
     Activate the user account.
     """
     
     serializer_class = UserActivationSerialider
 
-    def get(self, request, *args, **kwargs):
-        user = get_object_or_404(get_user_model().objects.filter(token=kwargs["token"]))
-        user.is_active = True
-        user.save()
-        return Response({'message': 'Account activated'}, status=status.HTTP_200_OK)
+    def create(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=self.request.data)
+        if(serializer.is_valid()):
+            token = (serializer.validated_data["token"])
+            user_email = cache.get(token)
+            if not user_email:
+                return Response({'error': 'Invalid or expired activation code'}, status=status.HTTP_404_NOT_FOUND)
+            user = get_user_model().objects.filter(email=user_email).first()
+            if user:
+                user.is_active = True
+                user.save()
+            cache.delete(token)
+            return Response({'message': 'Account activated'}, status=status.HTTP_200_OK)
+        
+        return Response({"error":"Token is required"},status=status.HTTP_400_BAD_REQUEST)

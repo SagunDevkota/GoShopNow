@@ -8,6 +8,8 @@ from django.contrib.auth import (
 from django.utils.translation import gettext as _
 from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.cache import cache
+import random
 
 from rest_framework import serializers
 
@@ -60,14 +62,13 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self,validated_data):
         """Create and return a user with encrypted password."""
         user = get_user_model().objects.create_user(**validated_data)
-
-        activation_url = reverse('user:activate-account', kwargs={
-            'token': user.token,
-        })
-
-        current_site = get_current_site(self.context['request'])
-        activation_link = f"http://{current_site.domain}{activation_url}"
-        send_email.delay("GoShopNow: Activate Account",f"Activate the account {activation_link}",[user.email],'')
+        while True:
+            token = random.randint(111111,999999)
+            if(cache.get(token)):
+                continue
+            cache.set(token,user.email,60*3)
+            break
+        send_email.delay("GoShopNow: Activate Account",f"Activate the account token: {token}",[user.email],'')
         return user
     
     def update(self,instance,validated_data):
@@ -127,4 +128,8 @@ class AuthTokenSerializer(serializers.Serializer):
     
 class UserActivationSerialider(serializers.Serializer):
     """Serializer for user actiovation"""
-    pass
+    token = serializers.CharField()
+
+    class Meta:
+        model = get_user_model()
+        fields = ['token']

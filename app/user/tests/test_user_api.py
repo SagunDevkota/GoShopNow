@@ -5,16 +5,19 @@ Tests for user API.
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.core.cache import cache
+from unittest import mock
 
 from rest_framework.test import APIClient
 from rest_framework import status,serializers
 
-
+import random
 
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token_obtain_pair')
 TOKEN_REFRESH = reverse('user:token_refresh')
 PROFILE_URL = reverse('user:profile')
+ACTIVATE_URL = reverse('user:activate-account')
 
 def create_user(**params):
     """Create and return a new user"""
@@ -141,14 +144,52 @@ class PublicUserApiTests(TestCase):
             "first_name" : "xyz",
             "last_name" : "abc",
             "phone" : "1234",
-            "email" : "user2@example.com",
+            "email" : "user21@example.com",
             "password" : "test123"
         }
         user = create_user(**payload)
-        activation_url = reverse('user:activate-account',args=["xyz"])
-        res = self.client.get(activation_url)
+        token = random.randint(111111,999999)
+        cache.set(token,user.email)
+        payload = {
+            "token":token-1
+        }
+        res = self.client.post(ACTIVATE_URL,data=payload)
         self.assertEqual(res.status_code,status.HTTP_404_NOT_FOUND)
-        self.assertIn("detail",res.json().keys())
+        self.assertIn("error",res.json().keys())
+
+    def test_no_token_in_account_activation(self):
+        """Return error if activation token provided is incorrect."""
+        payload = {
+            "first_name" : "xyz",
+            "last_name" : "abc",
+            "phone" : "1234",
+            "email" : "user21@example.com",
+            "password" : "test123"
+        }
+        user = create_user(**payload)
+        token = random.randint(111111,999999)
+        cache.set(token,user.email)
+        payload = {
+        }
+        res = self.client.post(ACTIVATE_URL,data=payload)
+        self.assertEqual(res.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error",res.json().keys())
+
+    @mock.patch('random.randint')
+    def test_same_token_for_two_user(self,mock_random):
+        """Generate new token if token already exists"""
+        payload = {
+            "first_name" : "xyz",
+            "last_name" : "abc",
+            "phone" : "1234",
+            "email" : "user2@example.com",
+            "password" : "T@est123"
+        }
+        mock_random.side_effect = [123456,654321,111111]
+        cache.set(123456,payload["email"])
+        res = self.client.post(CREATE_USER_URL,data=payload)
+        self.assertEqual(res.status_code,status.HTTP_201_CREATED)
+        self.assertIn("email",res.json().keys())
 
     def test_correct_token_in_account_activation(self):
         """Return error if activation token provided is incorrect."""
@@ -160,8 +201,12 @@ class PublicUserApiTests(TestCase):
             "password" : "test123"
         }
         user = create_user(**payload)
-        activation_url = reverse('user:activate-account',args=[user.token])
-        res = self.client.get(activation_url)
+        token = random.randint(111111,999999)
+        cache.set(token,user.email)
+        payload = {
+            "token":token
+        }
+        res = self.client.post(ACTIVATE_URL,data=payload)
         self.assertEqual(res.status_code,status.HTTP_200_OK)
         self.assertIn("message",res.json().keys())
 

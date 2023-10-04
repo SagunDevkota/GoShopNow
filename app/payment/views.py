@@ -17,6 +17,8 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
+from urllib.parse import urlsplit
+
 from core.tasks import send_email
 
 from core.models import Payment,Product,Cart,PaymentProduct,User,DiscountCoupon,DeliveryAddress
@@ -59,6 +61,12 @@ class PaymentViewSet(viewsets.GenericViewSet,
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user).order_by("-date_time")
 
+    def get_base_url(self,url):
+        parsed_url = urlsplit(url)
+        base_url = parsed_url.scheme + '://' + parsed_url.netloc
+        
+        return base_url
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid()
@@ -66,6 +74,10 @@ class PaymentViewSet(viewsets.GenericViewSet,
         product_details = []
         total_amount = 0
         items = list(Cart.objects.filter(user=self.request.user).values())
+        if(len(items)==0):
+            return Response({"error":"Cart is empty"},status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        if("return_url" not in data.keys()):
+            return Response({"error":"return_url is required"},status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(DeliveryAddress,user=self.request.user)
         product_details = []
         total_quantity = 0
@@ -102,8 +114,8 @@ class PaymentViewSet(viewsets.GenericViewSet,
             "purchase_order_id":purchase_id,
             "purchase_order_name":purchase_id,
             "amount":total_amount*100, #convert to paisa
-            "return_url": self.request.build_absolute_uri(reverse('payment:validate')),
-            "website_url": self.request.build_absolute_uri("/"),
+            "return_url": data["return_url"],
+            "website_url": self.get_base_url(data["return_url"]),
             "product_details":product_details
         }
         headers = {

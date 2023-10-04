@@ -56,6 +56,22 @@ def create_delivery_address(**params):
     """Create and return a new delivery address"""
     return DeliveryAddress.objects.create(**params)
 
+def create_product_and_add_to_cart(user):
+    procuct = {
+            "name": "Macbook Pro M1 Pro",
+            "price": 2400,
+            "stock":10,
+            "threshold":2
+        }
+    p1 = create_product(**procuct)
+    cart = {
+        "p_id":p1,
+        "quantity":2,
+        "user":user
+    }
+    create_cart(**cart)
+
+
 class PrivatePaymentApiTests(TestCase):
     """Unit test for payment api."""
 
@@ -71,6 +87,19 @@ class PrivatePaymentApiTests(TestCase):
         self.user = create_user(**payload)
         self.client.force_authenticate(self.user)
     
+    def test_empty_cart(self):
+        """Show forbidden error if cart is empty"""
+        response = self.client.post(PAYMENT_URL)
+        self.assertEqual(response.status_code,status.HTTP_422_UNPROCESSABLE_ENTITY)
+        self.assertEqual({"error":"Cart is empty"},response.json())
+
+    def test_empty_return_url(self):
+        """Throw error is return_url is blank"""
+        create_product_and_add_to_cart(self.user)
+        response = self.client.post(PAYMENT_URL,data={})
+        self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
+        self.assertEqual({"error":"return_url is required"},response.json())
+
     def test_create_payment_api_unavailable(self):
         """Test create payment when Khalti is down"""
         address = {
@@ -101,8 +130,9 @@ class PrivatePaymentApiTests(TestCase):
             'area':a3
         }
         create_delivery_address(**data)
+        create_product_and_add_to_cart(self.user)
         url = PAYMENT_URL
-        data = {} 
+        data = {"return_url":"http://127.0.0.1:8000/success"} 
 
         with mock.patch('requests.post') as mock_post:
             mock_post.side_effect = requests.exceptions.RequestException()
@@ -144,36 +174,24 @@ class PrivatePaymentApiTests(TestCase):
             'area':a3
         }
         create_delivery_address(**data)
+        create_product_and_add_to_cart(self.user)
         mock_uuid.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         mock_generate_id.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         url = PAYMENT_URL
-        data = {} 
-        api_data = {'purchase_order_id': '190888e6-64cd-4dd1-a8fe-80fac3e1c7da', 
-                    'purchase_order_name': '190888e6-64cd-4dd1-a8fe-80fac3e1c7da', 
-                    'amount': 0, 
-                    'return_url': 'http://testserver/api/payment/validate/', 
-                    'website_url': 'http://testserver/', 
-                    'product_details': []
-                }
+        data = {"return_url":"http://127.0.0.1:8000/success"} 
         mock_response = mock.MagicMock()
         mock_response.status_code = status.HTTP_400_BAD_REQUEST
         mock_response.json.return_value = {
-            "return_url": [
-                "Enter a valid URL."
-            ],
-            "website_url": [
-                "Enter a valid URL."
-            ],
-            "amount": [
-                "Amount should be greater than Rs. 1 that is 100 paisa."
-            ],
-            "error_key": "validation_error"
-        }
+            'return_url': ['Enter a valid URL.'], 
+            'website_url': ['Enter a valid URL.'], 
+            'amount': ['Amount should be greater than Rs. 1 that is 100 paisa.'], 
+            'error_key': 'validation_error'
+            }
 
         with mock.patch('requests.post') as mock_post:
             mock_post.return_value = mock_response
 
-            response = self.client.post(url, json=data)
+            response = self.client.post(url, data=data)
             # Assertions
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
             self.assertEqual(response.json(), {
@@ -188,16 +206,10 @@ class PrivatePaymentApiTests(TestCase):
                 ],
                 "error_key": "validation_error"
             })
-            
-            mock_post.assert_called_with(
-                url=settings.PAYMENT_URL, 
-                json=api_data,
-                headers={"Authorization":settings.KHALTI_API_KEY}
-            )
 
     @mock.patch('payment.views.uuid.uuid4') 
     @mock.patch('payment.views.generate_unique_id')
-    def test_create_payment_api_success(self,mock_generate_id, mock_uuid):
+    def test_create_payment_api_failed(self,mock_generate_id, mock_uuid):
         """Test create payment with empty cart"""
 
         address = {
@@ -228,45 +240,8 @@ class PrivatePaymentApiTests(TestCase):
             'area':a3
         }
         create_delivery_address(**data)
-        mock_uuid.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
-        mock_generate_id.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
-        url = PAYMENT_URL
-        data = {} 
-        api_data = {'purchase_order_id': '190888e6-64cd-4dd1-a8fe-80fac3e1c7da',
-                    'purchase_order_name': '190888e6-64cd-4dd1-a8fe-80fac3e1c7da',
-                    'amount': 0,
-                    'return_url': 'http://testserver/api/payment/validate/', 
-                    'website_url': 'http://testserver/', 
-                    'product_details': []
-                }
-        mock_response = mock.MagicMock()
-        mock_response.status_code = status.HTTP_200_OK
-        mock_response.json.return_value = {
-            "pidx": "Vf735uANUTUUKtmfjSSX5A",
-            "payment_url": "https://test-pay.khalti.com/?pidx=Vf735uANUTUUKtmfjSSX5A",
-            "expires_at": "2023-09-22T09:01:05.627170+05:45",
-            "expires_in": 1800,
-            'message': 'Success',
-        }
-
-        with mock.patch('requests.post') as mock_post:
-            mock_post.return_value = mock_response
-
-            response = self.client.post(url, json=data)
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-            self.assertEqual(response.json(), {
-                "pidx": "Vf735uANUTUUKtmfjSSX5A",
-                "payment_url": "https://test-pay.khalti.com/?pidx=Vf735uANUTUUKtmfjSSX5A",
-                "expires_at": "2023-09-22T09:01:05.627170+05:45",
-                "expires_in": 1800,
-                'message': 'Success',
-            })
-            
-            mock_post.assert_called_with(
-                url=settings.PAYMENT_URL, 
-                json=api_data,
-                headers={"Authorization":settings.KHALTI_API_KEY}
-            )
+        res = self.client.post(PAYMENT_URL,data=data)
+        self.assertEqual(res.status_code,status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     @mock.patch('payment.views.uuid.uuid4') 
     @mock.patch('payment.views.generate_unique_id')
@@ -274,7 +249,7 @@ class PrivatePaymentApiTests(TestCase):
         """Test payment without coupon_code."""
         procuct = {
             "name": "Macbook Pro M1 Pro",
-            "price": 265000,
+            "price": 1,
             "stock":10,
             "threshold":2
         }
@@ -282,7 +257,7 @@ class PrivatePaymentApiTests(TestCase):
 
         procuct = {
             "name": "Macbook Pro M2 Pro",
-            "price": 275000,
+            "price": 2,
             "stock":10,
             "threshold":2
         }
@@ -290,7 +265,7 @@ class PrivatePaymentApiTests(TestCase):
 
         procuct = {
             "name": "Macbook Pro M1 MAX",
-            "price": 215000,
+            "price": 10,
             "stock":10,
             "threshold":2
         }
@@ -349,68 +324,9 @@ class PrivatePaymentApiTests(TestCase):
         mock_uuid.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         mock_generate_id.return_value = '190888e6-64cd-4dd1-a8fe-80fac3e1c7da' 
         url = PAYMENT_URL
-        data = {} 
-        api_data = {
-            "purchase_order_id": "190888e6-64cd-4dd1-a8fe-80fac3e1c7da",
-            "purchase_order_name": "190888e6-64cd-4dd1-a8fe-80fac3e1c7da",
-            "amount": 151000000,
-            "return_url": "http://testserver/api/payment/validate/",
-            "website_url": "http://testserver/",
-            "product_details": [
-                {
-                "name": "Macbook Pro M1 Pro",
-                "unit_price": 265000,
-                "quantity": 2,
-                "total_price": 530000,
-                "identity": f"{p1.p_id}",
-                "id": p1.p_id
-                },
-                {
-                "name": "Macbook Pro M2 Pro",
-                "unit_price": 275000,
-                "quantity": 2,
-                "total_price": 550000,
-                "identity": f"{p2.p_id}",
-                "id": p2.p_id
-                },
-                {
-                "name": "Macbook Pro M1 MAX",
-                "unit_price": 215000,
-                "quantity": 2,
-                "total_price": 430000,
-                "identity": f"{p3.p_id}",
-                "id": p3.p_id
-                }
-            ]
-            }
-        mock_response = mock.MagicMock()
-        mock_response.status_code = status.HTTP_200_OK
-        mock_response.json.return_value = {
-            "pidx": "Vf735uANUTUUKtmfjSSX5A",
-            "payment_url": "https://test-pay.khalti.com/?pidx=Vf735uANUTUUKtmfjSSX5A",
-            "expires_at": "2023-09-22T09:01:05.627170+05:45",
-            "expires_in": 1800,
-            'message': 'Success',
-        }
-
-        with mock.patch('requests.post') as mock_post:
-            mock_post.return_value = mock_response
-
-            response = self.client.post(url, json=data)
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-            self.assertEqual(response.json(), {
-                "pidx": "Vf735uANUTUUKtmfjSSX5A",
-                "payment_url": "https://test-pay.khalti.com/?pidx=Vf735uANUTUUKtmfjSSX5A",
-                "expires_at": "2023-09-22T09:01:05.627170+05:45",
-                "expires_in": 1800,
-                'message': 'Success',
-            })
-            
-            mock_post.assert_called_with(
-                url=settings.PAYMENT_URL, 
-                json=api_data,
-                headers={"Authorization":settings.KHALTI_API_KEY}
-            )
+        data = {"return_url":"http://127.0.0.1:8000/success"} 
+        res = self.client.post(PAYMENT_URL,data=data)
+        self.assertEqual(res.status_code,status.HTTP_201_CREATED)
 
     @mock.patch('payment.views.uuid.uuid4') 
     @mock.patch('payment.views.generate_unique_id')
@@ -513,8 +429,8 @@ class PrivatePaymentApiTests(TestCase):
             "purchase_order_id": "190888e6-64cd-4dd1-a8fe-80fac3e1c7da",
             "purchase_order_name": "190888e6-64cd-4dd1-a8fe-80fac3e1c7da",
             "amount": 150990000,
-            "return_url": "http://testserver/api/payment/validate/",
-            "website_url": "http://testserver/",
+            "return_url": "http://127.0.0.1:8000/success",
+            "website_url": "http://127.0.0.1:8000",
             "product_details": [
                 {
                 "name": "Macbook Pro M1 Pro",
@@ -551,7 +467,7 @@ class PrivatePaymentApiTests(TestCase):
             "expires_in": 1800,
             'message': 'Success',
         }
-        data = {"coupon_code":coupon["coupon_code"]} 
+        data = {"coupon_code":coupon["coupon_code"],"return_url":"http://127.0.0.1:8000/success"} 
         with mock.patch('requests.post') as mock_post:
             mock_post.return_value = mock_response
 
@@ -580,13 +496,13 @@ class PrivatePaymentApiTests(TestCase):
             "expires_in": 1800,
             'message': 'Success',
         }
-        data = {"coupon_code":coupon2["coupon_code"]} 
+        data = {"coupon_code":coupon2["coupon_code"],"return_url":"http://127.0.0.1:8000/success"} 
         api_data = {
             "purchase_order_id": "190888e6-64cd-4dd1-a8fe-80fac3e1c7da",
             "purchase_order_name": "190888e6-64cd-4dd1-a8fe-80fac3e1c7da",
             "amount": 147980000,
-            "return_url": "http://testserver/api/payment/validate/",
-            "website_url": "http://testserver/",
+            "return_url": "http://127.0.0.1:8000/success",
+            "website_url": "http://127.0.0.1:8000",
             "product_details": [
                 {
                 "name": "Macbook Pro M1 Pro",

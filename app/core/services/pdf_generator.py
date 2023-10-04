@@ -27,13 +27,20 @@ def generate(filename:str,data:list,transaction_id):
     centered = Paragraph(company_name, custom_style)
     elements.append(centered)
 
-    # data = [
-    #     ["Product Name", "Unit Price", "Units", "Subtotal"],
-    #     ["Product 1", "$10", "2", "$20"],
-    #     ["Product 2", "$15", "3", "$45"],
-    # ]
+    data = [
+        ["Product Name", "Unit Price", "Units", "Subtotal"],
+        ["Baby Urine Mat XL Size (Width 61CM //24 Inches - Length 78Baby Urine Mat XL Size (Width 61CM //24 Inches - Length 78 1", "10", "2", "20"],
+        ["Product 2", "15", "3", "45"],
+    ]
+    custom_style = ParagraphStyle(
+        name='CustomTitle',
+        fontSize=8,
+    )
+    new_data = []
+    for _ in data:
+            new_data.append([Paragraph(_[0],custom_style),_[1],_[2],_[3]])
 
-    table = Table(data, colWidths=[200, 80, 80, 80])
+    table = Table(new_data, colWidths=[200, 80, 80, 80])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -48,7 +55,7 @@ def generate(filename:str,data:list,transaction_id):
 
     data_total = [
         ["", "", "", "Total"],
-        ["", "", "", f"Total: ${sum([float(row[-1]) for row in data[1:]])}"],
+        ["", "", "", f"Total: ${sum([float(row[-1]) for row in new_data[1:]])}"],
     ]
     table_total = Table(data_total, colWidths=[200, 80, 80, 80])
     table_total.setStyle(TableStyle([

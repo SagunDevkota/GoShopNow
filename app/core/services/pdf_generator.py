@@ -27,11 +27,6 @@ def generate(filename:str,data:list,transaction_id):
     centered = Paragraph(company_name, custom_style)
     elements.append(centered)
 
-    data = [
-        ["Product Name", "Unit Price", "Units", "Subtotal"],
-        ["Baby Urine Mat XL Size (Width 61CM //24 Inches - Length 78Baby Urine Mat XL Size (Width 61CM //24 Inches - Length 78 1", "10", "2", "20"],
-        ["Product 2", "15", "3", "45"],
-    ]
     custom_style = ParagraphStyle(
         name='CustomTitle',
         fontSize=8,

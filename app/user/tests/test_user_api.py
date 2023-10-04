@@ -185,7 +185,7 @@ class PublicUserApiTests(TestCase):
             "email" : "user2@example.com",
             "password" : "T@est123"
         }
-        mock_random.side_effect = [123456,654321,111111]
+        mock_random.side_effect = [123456,654321,111111,123123]
         cache.set(123456,payload["email"])
         res = self.client.post(CREATE_USER_URL,data=payload)
         self.assertEqual(res.status_code,status.HTTP_201_CREATED)

@@ -1,13 +1,22 @@
 from django_elasticsearch_dsl import Document,Index,fields
 
 from core.models import Product,Category,ProductImage
+from elasticsearch_dsl import connections
 
 product_index = Index('product')
 product_index.settings(
-    number_of_shards = 1,
-    number_of_replicas = 1,
+    number_of_shards=1,
+    number_of_replicas=1,
+    analysis={
+        "analyzer": {
+            "custom_analyzer": {
+                "type": "custom",
+                "tokenizer": "keyword"  # Use the 'keyword' tokenizer to keep entire text as a single token
+            }
+        }
+    }
 )
-   
+
 
 @product_index.doc_type
 class ProductDocument(Document):
@@ -24,7 +33,10 @@ class ProductDocument(Document):
     threshold = fields.IntegerField(attr='threshold')
     stock = fields.IntegerField(attr='stock')
     rating = fields.FloatField(attr='rating')
-    category = fields.TextField(attr='category.category')
+    category = fields.TextField(
+        attr='category.category',
+        analyzer='custom_analyzer'  # Specify the custom analyzer here
+    )
     image_url = fields.TextField(attr='image_url.url')
     class Django(object):
         model = Product

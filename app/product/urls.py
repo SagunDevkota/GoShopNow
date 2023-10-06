@@ -17,4 +17,5 @@ app_name = 'product' #name for reverse url
 urlpatterns = [
     path('product/', views.ProductViewSet.as_view({'get': 'list'}), name='product-list'),
     path('product/<int:pk>/', views.ProductViewSet.as_view({'get': 'retrieve'}), name='product-detail'),
+    path('category/', views.CategoryViewSet.as_view({'get': 'list'}), name='category-list'),
 ]

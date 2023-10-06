@@ -2,18 +2,17 @@
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from drf_spectacular.openapi import OpenApiParameter
 from drf_spectacular.utils import extend_schema
-from elasticsearch_dsl import Search
 from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
 from django_elasticsearch_dsl_drf.filter_backends import CompoundSearchFilterBackend,FilteringFilterBackend
-
 from product import serializers
 from core.pagination import CustomPagination
 from core.models import Product,Category
 from core.documents import ProductDocument
-from elasticsearch import exceptions
+
     
 class ProductViewSet(
     DocumentViewSet
@@ -33,7 +32,7 @@ class ProductViewSet(
     http_method_names = ['get']
     
     def get_queryset(self):
-        query_set = super().get_queryset()
+        query_set = super().get_queryset().sort('-p_id')
         price_ordering = self.request.query_params.get("price", "0")
         rating_ordering = self.request.query_params.get("rating", "0")     
         order_price = None
@@ -67,7 +66,6 @@ class ProductViewSet(
         try:
             return super().list(request, *args, **kwargs)
         except Exception as e:
-            print(e)
             return Response({"error":"Elasticsearch connection failed"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
         
@@ -82,3 +80,9 @@ class ProductViewSet(
         if(self.action == 'retrieve'):
             return serializers.ProductDetailSerializer
         return self.serializer_class
+
+
+class CategoryViewSet(ModelViewSet):
+    """View for category list"""
+    serializer_class = serializers.CategorySerializer
+    queryset = Category.objects.all()

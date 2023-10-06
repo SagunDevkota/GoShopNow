@@ -3,7 +3,7 @@ Serializers for product model.
 """
 from rest_framework import serializers
 
-from core.models import Product,ProductImage
+from core.models import Product,ProductImage,Category
 from core.documents import ProductDocument
 
 from review.serializers import ReviewSerializer
@@ -57,3 +57,9 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         model = Product
         fields = ['p_id', 'name', 'price', 'threshold', 'stock', 'rating', 'description', 'review', 'category','image_url']
         read_only_fields = ['rating','id']
+
+class CategorySerializer(serializers.ModelSerializer):
+    """Serializer for category"""
+    class Meta:
+        model = Category
+        fields = ['category']

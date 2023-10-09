@@ -6,6 +6,7 @@ static/
 desctiption/
 staticfiles/
 media/
+GoShopNow/
 config.py
 *.py[cod]
 *$py.class

@@ -33,6 +33,8 @@ ALLOWED_HOSTS = ["goshopnow.onrender.com","127.0.0.1"]
 # Application definition
 
 INSTALLED_APPS = [
+    'adminlte3',
+    'adminlte3_theme',
     "admincharts",
     'django.contrib.admin',
     'django.contrib.auth',
@@ -72,7 +74,9 @@ ROOT_URLCONF = 'app.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR,"templates/")],
+        'DIRS': [
+            os.path.join(BASE_DIR,"templates/"),
+                 ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -145,7 +149,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 INVOICES_PATH = os.path.join(BASE_DIR,'static','invoices')
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

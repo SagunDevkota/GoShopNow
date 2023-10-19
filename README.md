@@ -94,6 +94,7 @@ The services will start, and you can access the GoShopNow backend API at `http:/
 
 ## Features
 - User authentication, authorization and account activation using email
+- Review filtering using LSTM network
 - Product management (add, edit, delete) from admin panel
 - Shopping cart functionality
 - Order processing and tracking
